@@ -74,7 +74,7 @@ const SuggestionsContainer: React.FC<SuggestionsContainerProps> = ({ documentId,
       {prompts.map((prompt) => (
         <div key={prompt.id} className="bg-white shadow-lg rounded-lg p-6 mb-4">
           <div className="flex items-center mb-4">
-            <span className="bg-green-500 rounded-full w-2 h-2 inline-block mr-2"></span>
+            <span className="bg-rose-950 rounded-full w-2 h-2 inline-block mr-2"></span>
             <p className="text-gray-700 text-sm font-medium">Guide StarcAI to match your style</p>
           </div>
           <div className="bg-gray-100 w-[90%] ml-[20px] p-4 rounded-md">
@@ -88,7 +88,7 @@ const SuggestionsContainer: React.FC<SuggestionsContainerProps> = ({ documentId,
           <div className="flex justify-center mt-4">
             <button
               onClick={() => handleRewrite(prompt.id, prompt.prompt)}
-              className="bg-purple-700 mb-2 text-white py-1 px-[20px] rounded-md font-semibold hover:bg-blue-700"
+              className="bg-indigo-800 mb-2 text-white py-1 px-[20px] rounded-md font-semibold hover:bg-purple-800"
             >
               Rewrite
             </button>

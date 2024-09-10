@@ -120,7 +120,7 @@ const ScoreContainer = forwardRef((props, ref) => {
               </div>
               {/* Score bar */}
               <div className="w-full bg-gray-200 rounded-full h-2.5 mt-1"> {/* Set the unfilled portion to light gray */}
-                <div className={`h-2.5 rounded-full`} style={{ width: `${value}%`, backgroundColor: value > 0 ? `#${key === 'Optimism' ? '0043CE' : key === 'Confidence' ? 'EF5DA8' : '37C6AB'}` : 'transparent' }}></div>
+                <div className={`h-2.5 rounded-full`} style={{ width: `${value}%`, backgroundColor: value > 0 ? `#${key === 'Optimism' ? '454F63' : key === 'Confidence' ? '71063D' : '117F6A'}` : 'transparent' }}></div>
               </div>
             </div>
           </div>

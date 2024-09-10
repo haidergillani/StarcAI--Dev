@@ -44,7 +44,7 @@ const Chatbot = () => {
   return (
     <div className="flex flex-col mt-[25%] w-full p-4 bg-white shadow-lg rounded-lg">
       <div className="flex items-center mb-4">
-        <div className="w-3 h-3 bg-red-500 rounded-full mr-2"></div>
+        <div className="w-3 h-3 bg-rose-950 rounded-full mr-2"></div>
         <h1 className="text-lg font-light">Ask StarcAI – Financial Reporting Expert</h1>
       </div>
       <div className="flex-1 overflow-y-auto mb-4">
@@ -74,7 +74,7 @@ const Chatbot = () => {
         </div>
       </div>
       <div className="flex justify-center mt-4">
-        <button className="bg-purple-700 text-white py-2 px-4 rounded-md font-semibold hover:bg-blue-700" onClick={handleSend}>
+        <button className="bg-indigo-800 text-white py-2 px-4 rounded-md font-semibold hover:bg-purple-800" onClick={handleSend}>
           Enter
         </button>
       </div>
