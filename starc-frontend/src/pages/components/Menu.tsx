@@ -12,6 +12,7 @@ import DocumentIcon from "../../assets/document.svg";
 import CloseIcon from "../../assets/close.svg";
 import MenuIcon from "../../assets/menu.svg";
 import UploadIcon from "../../assets/upload.svg";
+import DownloadIcon from "../../assets/download.svg"; // Import the download icon
 
 const Menu = ({ defaultOpen = false }) => {
   const [isOpen, setIsOpen] = useState(defaultOpen);
@@ -23,18 +24,13 @@ const Menu = ({ defaultOpen = false }) => {
   const [newDocText, setNewDocText] = useState("");
   const [animationCompleted, setAnimationCompleted] = useState(false);
   const [documentId, setDocumentId] = useState('');
+  const [isCreating, setIsCreating] = useState(false); // State to track document creation
 
   useEffect(() => {
     if (router.isReady) {
       const pathArray = router.asPath.split('/');
       const potentialDocId = pathArray[pathArray.length - 1];
-  
-      if (!isNaN(potentialDocId)) {
-        setDocumentId(potentialDocId);
-        console.log('Doc ID from Menu component: ' + potentialDocId);
-      } else {
-        console.error('Invalid document ID');
-      }
+      setDocumentId(potentialDocId);
     }
   }, [router.isReady, router.asPath]);
 
@@ -58,10 +54,13 @@ const Menu = ({ defaultOpen = false }) => {
   const toggleMenu = () => setIsOpen(!isOpen);
 
   const createNewDocument = async () => {
+    if (isCreating) return; // Prevent multiple clicks
+
+    setIsCreating(true); // Set loading state
     const authToken = localStorage.getItem("authToken");
     try {
       const response = await axios.post(
-        "https://starcai.onrender.com/docs",
+        "http://127.0.0.1:2000/docs",
         {
           title: newDocTitle,
           text: newDocText,
@@ -75,6 +74,7 @@ const Menu = ({ defaultOpen = false }) => {
 
       if (response.status === 200) {
         const newDocId = response.data.id;
+        localStorage.setItem("openDocId", newDocId); // Update local storage with new document ID
         setIsNewDocModalOpen(false);
         router.push(`/home/${newDocId}`);
       } else {
@@ -82,6 +82,8 @@ const Menu = ({ defaultOpen = false }) => {
       }
     } catch (error) {
       console.error("Error creating new document:", error);
+    } finally {
+      setIsCreating(false); // Reset loading state
     }
   };
 
@@ -98,7 +100,7 @@ const Menu = ({ defaultOpen = false }) => {
 
     try {
       const response = await axios.get(
-        `https://starcai.onrender.com/docs/pdf/${documentId}`,
+        `http://127.0.0.1:2000/docs/pdf/${documentId}`,
         {
           headers: {
             Authorization: `Bearer ${authToken}`,
@@ -108,14 +110,14 @@ const Menu = ({ defaultOpen = false }) => {
       );
 
       const fileURL = window.URL.createObjectURL(new Blob([response.data]));
-      const fileLink = document.createElement("a");
-      fileLink.href = fileURL;
-      fileLink.setAttribute("download", "document.pdf");
-      document.body.appendChild(fileLink);
-      fileLink.click();
-      fileLink.remove();
+      const link = document.createElement('a');
+      link.href = fileURL;
+      link.setAttribute('download', 'document.pdf'); // or use response headers to get filename
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
     } catch (error) {
-      console.error("Error exporting document", error);
+      console.error("Error exporting document as PDF:", error);
     }
   };
 
@@ -139,27 +141,39 @@ const Menu = ({ defaultOpen = false }) => {
       console.error("No file selected");
       return;
     }
-    const formData = new FormData();
-    formData.append("pdf", selectedFile, selectedFile.name);
 
     const authToken = localStorage.getItem("authToken");
+    if (!authToken) {
+      console.error("No auth token found");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("file", selectedFile);
+
     try {
       const response = await axios.post(
-        "https://starcai.onrender.com/docs/pdf",
+        "http://127.0.0.1:2000/docs/pdf",
         formData,
         {
           headers: {
             Authorization: `Bearer ${authToken}`,
+            "Content-Type": "multipart/form-data",
           },
         },
       );
-      console.log("File uploaded successfully", response.data);
-      setIsUploadModalOpen(false);
+
+      if (response.status === 200) {
+        console.log("File uploaded successfully");
+        setIsUploadModalOpen(false);
+        router.reload(); // Reload the page after successful upload
+      } else {
+        console.error("Error uploading file:", response.statusText);
+      }
     } catch (error) {
-      console.error("Error uploading file", error);
+      console.error("Error uploading file:", error);
     }
   };
-
 
   return (
     <>
@@ -167,7 +181,7 @@ const Menu = ({ defaultOpen = false }) => {
       {!defaultOpen && (
         <button
           onClick={toggleMenu}
-          className="absolute left-0 top-0 z-30 rounded-full p-2 transition duration-300 hover:bg-gray-200"
+          className="absolute left-0 top-0 z-30 mt-[20px] rounded-full p-2 transition duration-300 hover:bg-gray-200"
         >
           <div className="relative">
             {isOpen ? (
@@ -243,8 +257,9 @@ const Menu = ({ defaultOpen = false }) => {
                     <button
                       onClick={createNewDocument}
                       className="rounded bg-blue-500 px-4 py-2 text-white"
+                      disabled={isCreating} // Disable the button while creating
                     >
-                      Create
+                      {isCreating ? "Creating..." : "Create"}
                     </button>
                   </div>
                 </div>
@@ -253,7 +268,7 @@ const Menu = ({ defaultOpen = false }) => {
 
             <button
               onClick={() => setIsNewDocModalOpen(true)}
-              className={`flex items-center space-x-2 rounded-md bg-white px-4 py-2 text-gray-800 transition-colors duration-200 hover:bg-gray-300 ${styles.menuItem}`}
+              className={`flex items-center  space-x-2 rounded-md bg-white px-4 py-2 text-gray-800 transition-colors duration-200 hover:bg-gray-300 ${styles.menuItem}`}
             >
               <Image
                 src={DocumentIcon}
@@ -275,8 +290,8 @@ const Menu = ({ defaultOpen = false }) => {
               onClick={() => documentId ? exportDocumentAsPdf(documentId.toString()) : console.warn('Document ID is undefined')}
               className="flex items-center space-x-2 rounded-md bg-white px-4 py-2 text-gray-800 transition-colors duration-200 hover:bg-gray-300"
             >
-              {/* Icon and Label for Export Button */}
-              <span>Export as PDF</span>
+              <Image src={DownloadIcon} alt="Download" width={24} height={24} /> {/* Add the download icon */}
+              <span>Download</span>
             </button>
 
             {/* Upload Modal */}

@@ -1,59 +1,76 @@
-"""
-
-Changes Unlikely to be needed
-
-"""
-
-
-# Import neccesary libraries.
-from flask import Blueprint, request, jsonify
+from fastapi import APIRouter, Depends, HTTPException, Request
+from sqlalchemy.orm import Session
+from fastapi_jwt_auth import AuthJWT
+from authlib.integrations.starlette_client import OAuth
+from starlette.config import Config
+from starlette.responses import RedirectResponse
 from api_project.models import User
-from api_project import db
-from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity, get_jwt
-from werkzeug.security import generate_password_hash
+from api_project.database import get_db
+from api_project.schemas import UserCreate, UserLogin, TokenResponse
+import os
 
-# Register route.
-auth_bp = Blueprint('auth', __name__)
+auth_router = APIRouter()
 
-# Register unique user using name, email and password.
-@auth_bp.route('/register', methods=['POST'])
-def register():
-    data = request.get_json()
-    username = data.get('username')
-    email = data.get('email')
-    password = data.get('password')
+# Load environment variables
+config = Config(".env")
+oauth = OAuth(config)
 
-    if not username or not email or not password:
-        return jsonify({"message": "Username, email, and password required"}), 400
-        
-    user_with_same_name = User.query.filter_by(username=username).first()
-    user_with_same_email = User.query.filter_by(email=email).first()
+oauth.register(
+    name='google',
+    client_id=os.getenv('GOOGLE_CLIENT_ID'),
+    client_secret=os.getenv('GOOGLE_CLIENT_SECRET'),
+    authorize_url='https://accounts.google.com/o/oauth2/auth',
+    authorize_params=None,
+    access_token_url='https://accounts.google.com/o/oauth2/token',
+    access_token_params=None,
+    refresh_token_url=None,
+    redirect_uri=os.getenv('GOOGLE_REDIRECT_URI'),
+    client_kwargs={'scope': 'openid profile email'},
+)
 
-    if user_with_same_name:
-        return jsonify({"message": "Username already exists"}), 400
+@auth_router.post('/google', response_model=TokenResponse)
+async def google_login(request: Request, db: Session = Depends(get_db), Authorize: AuthJWT = Depends()):
+    token = request.json().get('token')
+    user_info = await oauth.google.parse_id_token(request, token)
+    user_email = user_info['email']
 
-    if user_with_same_email:
-        return jsonify({"message": "Email already registered"}), 400
+    user = db.query(User).filter_by(email=user_email).first()
+    if not user:
+        user = User(username=user_info['name'], email=user_email)
+        db.add(user)
+        db.commit()
 
-    new_user = User(username=username, email=email)
-    new_user.set_password(password)
+    access_token = Authorize.create_access_token(subject=user.id)
+    return {"access_token": access_token}
 
-    db.session.add(new_user)
-    db.session.commit()
+# Register unique user using name, email, and password.
+@auth_router.post('/register', response_model=dict)
+def register(user: UserCreate, db: Session = Depends(get_db)):
+    if db.query(User).filter_by(username=user.username).first():
+        raise HTTPException(status_code=400, detail="Username already exists")
+    if db.query(User).filter_by(email=user.email).first():
+        raise HTTPException(status_code=400, detail="Email already registered")
 
-    return jsonify({"message": "Registered successfully"}), 201
+    new_user = User(username=user.username, email=user.email)
+    new_user.set_password(user.password)
+    db.add(new_user)
+    db.commit()
+
+    return {"message": "Registered successfully"}
 
 # Login using either email or password, which checks your password to return an auth token.
-@auth_bp.route('/login', methods=['POST'])
-def login():
-    data = request.get_json()
-    login_identifier = data.get('login_identifier')
-    password = data.get('password')
+@auth_router.post('/login', response_model=TokenResponse)
+def login(user: UserLogin, Authorize: AuthJWT = Depends(), db: Session = Depends(get_db)):
+    db_user = db.query(User).filter((User.username == user.login_identifier) | (User.email == user.login_identifier)).first()
+    if not db_user or not db_user.check_password(user.password):
+        raise HTTPException(status_code=401, detail="Invalid credentials")
 
-    user = User.query.filter((User.username == login_identifier) | (User.email == login_identifier)).first()
+    access_token = Authorize.create_access_token(subject=db_user.id)
+    return {"access_token": access_token}
 
-    if user and user.check_password(password):
-        access_token = create_access_token(identity=user.id)
-        return jsonify(access_token=access_token), 200
-
-    return jsonify({"message": "Invalid credentials"}), 401
+@auth_router.post('/refresh', response_model=TokenResponse)
+def refresh_token(Authorize: AuthJWT = Depends()):
+    Authorize.jwt_refresh_token_required()
+    current_user = Authorize.get_jwt_subject()
+    new_access_token = Authorize.create_access_token(subject=current_user)
+    return {"access_token": new_access_token}

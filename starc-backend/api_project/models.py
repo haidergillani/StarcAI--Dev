@@ -1,5 +1,4 @@
 """
-
 Minor changes might be needed, but unlikely
 
 Each Document <- Multiple Text Chunks
@@ -9,23 +8,25 @@ Previously a text chunk stored a Model called Sentecnes but this has been remove
 Ensure relations are now updated to reflect this change
 
 Text Chunk allows flexibility incase subsections of a text need to be rewritten
-
 """
 
-from datetime import datetime, timedelta
-from . import db
+from datetime import datetime
+from sqlalchemy import Column, Integer, String, Text, Float, DateTime, ForeignKey
+from sqlalchemy.orm import relationship
+from .database import Base
 from werkzeug.security import generate_password_hash, check_password_hash
 
 # Create user with username, password, email connected to all their docs
-class User(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String, nullable=False)
-    password = db.Column(db.String, nullable=False)
-    email = db.Column(db.String, nullable=False)
-    documents = db.relationship('Document', backref='user', lazy=True, cascade="all, delete-orphan")
+class User(Base):
+    __tablename__ = 'users'
+
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String, nullable=False)
+    password = Column(String, nullable=False)
+    email = Column(String, nullable=False)
+    documents = relationship('Document', backref='user', lazy=True, cascade="all, delete-orphan")
 
     # Set and check for password using Werkzeug functions.
-    
     def set_password(self, password):
         self.password = generate_password_hash(password)
 
@@ -33,38 +34,58 @@ class User(db.Model):
         return check_password_hash(self.password, password)
 
 # Store basic document details.
-class Document(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    title = db.Column(db.String(255), nullable=False)
-    upload_date = db.Column(db.DateTime, default=datetime.utcnow)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    word_count = db.Column(db.Integer, default=0, nullable=False)
-    text_chunks = db.relationship('TextChunks', backref='document', lazy=True, cascade="all, delete-orphan")
+class Document(Base):
+    __tablename__ = 'documents'
+
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String(255), nullable=False)
+    upload_date = Column(DateTime, default=datetime.utcnow)
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
+    word_count = Column(Integer, default=0, nullable=False)
+    text_chunks = relationship('TextChunks', backref='document', lazy=True, cascade="all, delete-orphan")
 
 # Store a complete piece of text associated with each doc. By segregating docs and its text, we can allow for rewrite and scoring process for a subsection of an entire docs text is an extension feature than rewriting the entire doc.
-class TextChunks(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    input_text_chunk = db.Column(db.Text, nullable=False)
-    rewritten_text = db.Column(db.Text, nullable=False)
-    document_id = db.Column(db.Integer, db.ForeignKey('document.id'), nullable=False)
-    sentences = db.relationship('Sentence', backref='text_chunk', lazy=True, cascade="all, delete-orphan")
-    initial_score = db.relationship('InitialScore', backref='text_chunk', uselist=False, cascade="all, delete-orphan")
-    final_score = db.relationship('FinalScore', backref='text_chunk', uselist=False, cascade="all, delete-orphan")
+class TextChunks(Base):
+    __tablename__ = 'text_chunks'
+
+    id = Column(Integer, primary_key=True, index=True)
+    input_text_chunk = Column(Text, nullable=False)
+    rewritten_text = Column(Text, nullable=False)
+    document_id = Column(Integer, ForeignKey('documents.id'), nullable=False)
+    initial_score = relationship('InitialScore', backref='text_chunk', uselist=False, cascade="all, delete-orphan")
+    final_score = relationship('FinalScore', backref='text_chunk', uselist=False, cascade="all, delete-orphan")
 
 # Store scores for original text.
-class InitialScore(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    score = db.Column(db.Float, nullable=False)
-    optimism = db.Column(db.Float, nullable=False)
-    forecast = db.Column(db.Float, nullable=False)
-    confidence = db.Column(db.Float, nullable=False)
-    text_chunk_id = db.Column(db.Integer, db.ForeignKey('text_chunks.id'), nullable=False)
+class InitialScore(Base):
+    __tablename__ = 'initial_scores'
+
+    id = Column(Integer, primary_key=True, index=True)
+    score = Column(Float, nullable=False)
+    optimism = Column(Float, nullable=False)
+    forecast = Column(Float, nullable=False)
+    confidence = Column(Float, nullable=False)
+    text_chunk_id = Column(Integer, ForeignKey('text_chunks.id'), nullable=False)
 
 # Store scores for rewritten text.
-class FinalScore(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    score = db.Column(db.Float, nullable=False)
-    optimism = db.Column(db.Float, nullable=False)
-    forecast = db.Column(db.Float, nullable=False)
-    confidence = db.Column(db.Float, nullable=False)
-    text_chunk_id = db.Column(db.Integer, db.ForeignKey('text_chunks.id'), nullable=False)
+class FinalScore(Base):
+    __tablename__ = 'final_scores'
+
+    id = Column(Integer, primary_key=True, index=True)
+    score = Column(Float, nullable=False)
+    optimism = Column(Float, nullable=False)
+    forecast = Column(Float, nullable=False)
+    confidence = Column(Float, nullable=False)
+    text_chunk_id = Column(Integer, ForeignKey('text_chunks.id'), nullable=False)
+
+class Suggestion(Base):
+    __tablename__ = "suggestions"
+    id = Column(Integer, primary_key=True, index=True)
+    document_id = Column(Integer, ForeignKey("documents.id"))
+    input_text_chunk = Column(String)
+    rewritten_text = Column(String)
+
+    document = relationship("Document", back_populates="suggestions")
+
+Document.suggestions = relationship("Suggestion", order_by=Suggestion.id, back_populates="document")
+
+

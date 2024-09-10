@@ -32,7 +32,7 @@ describe('Suggestion Component', () => {
 
     fireEvent.click(deleteButton);
 
-    expect(mockedAxios.delete).toHaveBeenCalledWith(`https://starcai.onrender.com/fix/123/1`);
+    expect(mockedAxios.delete).toHaveBeenCalledWith(`http://127.0.0.1:2000/fix/123/1`);
     expect(mockOnSuggestionUpdate).toHaveBeenCalled();
   });
 
@@ -42,7 +42,7 @@ describe('Suggestion Component', () => {
 
     fireEvent.click(rephraseButton);
 
-    expect(mockedAxios.put).toHaveBeenCalledWith(`https://starcai.onrender.com/fix/123/1`);
+    expect(mockedAxios.put).toHaveBeenCalledWith(`http://127.0.0.1:2000/fix/123/1`);
     expect(mockOnSuggestionUpdate).toHaveBeenCalled();
   });
 });

@@ -1,145 +1,105 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import axios from "axios";
-import Image from "next/image";
-import Suggestion from "./Suggestion";
-import arrowDownIcon from "../../assets/arrow-down.svg";
-import arrowUpIcon from "../../assets/arrow-up.svg";
 
-interface Suggestion {
-  id: number;
-  content: string;
-  documentId: number;
+interface SuggestionsContainerProps {
+  documentId: number | null;
+  onUpdateText: (text: string) => void;
+  setText: (text: string) => void;
 }
 
-const SuggestionsContainer = ({ documentId }: { documentId: number }) => {
-  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
-  const [isHidden, setIsHidden] = useState(false);
-  const [error, setError] = useState("");
+const SuggestionsContainer: React.FC<SuggestionsContainerProps> = ({ documentId, onUpdateText, setText }) => {
+  const [prompts, setPrompts] = useState([
+    { id: 1, prompt: "Induce confidence in this" }
+  ]);
 
-  const apiUrl = 'https://starcai.onrender.com/';
+  const handlePromptChange = (id: number, value: string) => {
+    setPrompts((prevPrompts) =>
+      prevPrompts.map((prompt) => (prompt.id === id ? { ...prompt, prompt: value } : prompt))
+    );
+  };
 
-  const fetchSuggestions = async () => {
-    try {
-      const response = await axios.get(`${apiUrl}/fix/${documentId}`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("authToken")}`, // Replace with auth token retrieval method
-        },
-      });
-      setSuggestions(
-        response.data.map((suggestion: Suggestion) => ({
-          ...suggestion,
-          documentId,
-        })),
-      );
-    } catch (error) {
-      console.error("Error fetching suggestions:", error);
-      setError("Failed to fetch suggestions");
+  const handleRewrite = async (id: number, currentPrompt: string) => {
+    if (documentId && currentPrompt) {
+      const authToken = localStorage.getItem("authToken");
+      try {
+        const response = await axios.post(
+          `http://127.0.0.1:2000/fix/${documentId}/rewrite`,
+          { prompt: currentPrompt },
+          {
+            headers: {
+              Authorization: `Bearer ${authToken}`,
+            },
+          }
+        );
+        if (response.status === 200) {
+          const rewrittenText = response.data.rewritten_text;
+          setText(rewrittenText);
+
+          // Save the rewritten text to the database
+          await axios.post(
+            `http://127.0.0.1:2000/docs/${documentId}/save_rewrite`,
+            { rewritten_text: rewrittenText },
+            {
+              headers: {
+                Authorization: `Bearer ${authToken}`,
+              },
+            }
+          );
+        }
+      } catch (error) {
+        console.error("Error rewriting text:", error);
+      }
     }
   };
 
-  const handleApplyAllClick = async () => {
-    try {
-      await axios.put(
-        `${apiUrl}/fix/${documentId}/all`,
-        {},
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("authToken")}`,
-          },
-        },
-      );
-      fetchSuggestions(); // Refresh suggestions after applying
-    } catch (error) {
-      console.error("Error applying all suggestions:", error);
-    }
+  const addMorePrompts = () => {
+    setPrompts((prevPrompts) => [...prevPrompts, { id: prevPrompts.length + 1, prompt: "" }]);
   };
 
-  const handleDeleteAllClick = async () => {
-    try {
-      await axios.delete(`${apiUrl}/fix/${documentId}/all`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("authToken")}`,
-        },
-      });
-      fetchSuggestions(); // Refresh suggestions after deleting all
-    } catch (error) {
-      console.error("Error deleting all suggestions:", error);
-    }
+  const renderPrompt = (prompt: string) => {
+    const parts = prompt.split(/(confidence|optimistic)/gi);
+    return parts.map((part, index) =>
+      part.toLowerCase() === "confidence" || part.toLowerCase() === "optimistic" ? (
+        <span key={index} className="text-purple-700 font-semibold">
+          {part}
+        </span>
+      ) : (
+        part
+      )
+    );
   };
-
-  const handleReevaluateClick = async () => {
-    // Just fetches the documents using the normal refresh method
-    fetchSuggestions();
-  };
-
-  const toggleSuggestions = () => {
-    setIsHidden(!isHidden);
-  };
-
-  useEffect(() => {
-    // fetchSuggestions();
-    const defaultSuggestions: Suggestion[] = [
-      {
-        id: 1,
-        content:
-          "This is a test suggestion for improving your confidence score.",
-        documentId: 1,
-      },
-      {
-        id: 2,
-        content: "This is a test suggestion for improving your optimism score.",
-        documentId: 1,
-      },
-    ];
-
-    setSuggestions(defaultSuggestions);
-  }, []); //[documentId]);
 
   return (
-    <div className="suggestions-container">
-      {error && <div className="error-message">{error}</div>}
-      {!error && suggestions.length > 0 && (
-        <>
-          <div className="flex space-x-2 text-m_1 font-semibold text-gray-50">
-            <h2>All Suggestions</h2>
-            <button onClick={toggleSuggestions}>
-              <Image
-                src={isHidden ? arrowUpIcon : arrowDownIcon}
-                alt="arrow-icon"
-              />
+    <div className="max-w-md mx-auto mt-8">
+      {prompts.map((prompt) => (
+        <div key={prompt.id} className="bg-white shadow-lg rounded-lg p-6 mb-4">
+          <div className="flex items-center mb-4">
+            <span className="bg-green-500 rounded-full w-2 h-2 inline-block mr-2"></span>
+            <p className="text-gray-700 text-sm font-medium">Guide StarcAI to match your style</p>
+          </div>
+          <div className="bg-gray-100 w-[90%] ml-[20px] p-4 rounded-md">
+            <input
+              type="text"
+              value={prompt.prompt}
+              onChange={(e) => handlePromptChange(prompt.id, e.target.value)}
+              className="w-full bg-transparent text-center text-gray-800 text-lg font-light outline-none"
+            />
+          </div>
+          <div className="flex justify-center mt-4">
+            <button
+              onClick={() => handleRewrite(prompt.id, prompt.prompt)}
+              className="bg-purple-700 mb-2 text-white py-1 px-[20px] rounded-md font-semibold hover:bg-blue-700"
+            >
+              Rewrite
             </button>
           </div>
-          {!isHidden && (
-            <div className="flex cursor-pointer gap-12 pb-16 pt-16 text-sm_3 font-semibold text-primary-purple">
-              <h3
-                className="apply-all-button cursor-pointer"
-                onClick={handleApplyAllClick}
-              >
-                Apply All
-              </h3>
-              <h3
-                className="delete-all-button cursor-pointer"
-                onClick={handleDeleteAllClick}
-              >
-                Delete All
-              </h3>
-              <h3 className="cursor-pointer" onClick={handleReevaluateClick}>
-                Reevaluate suggestions
-              </h3>
-            </div>
-          )}
-          <div className="suggestions-list flex flex-col space-y-12">
-            {suggestions.map((suggestion) => (
-              <Suggestion
-                key={suggestion.id}
-                suggestion={suggestion}
-                onSuggestionUpdate={fetchSuggestions}
-              />
-            ))}
-          </div>
-        </>
-      )}
-      {!error && suggestions.length === 0 && <div>No suggestions found</div>}
+        </div>
+      ))}
+      {/* <div className="text-center mt-6">
+        <button onClick={addMorePrompts} className="text-gray-500 text-sm font-medium">
+          More Suggestions
+        </button>
+      </div> */}
     </div>
   );
 };

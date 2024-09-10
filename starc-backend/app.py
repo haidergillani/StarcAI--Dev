@@ -11,4 +11,6 @@ app = create_app()
 # main guard
 # port and host changed for deployment purposes
 if __name__ == "__main__":
-    app.run(debug=True, host='0.0.0.0', port=2000)
+    import uvicorn
+
+    uvicorn.run(app, host='0.0.0.0', port=2000)

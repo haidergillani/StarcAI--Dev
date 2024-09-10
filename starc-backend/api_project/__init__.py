@@ -1,60 +1,56 @@
-"""
-
-No major changes needed
-
-"""
-
-# Import necessary modules from Flask and related extensions
-from flask import Flask
-from flask_sqlalchemy import SQLAlchemy
-from flask_migrate import Migrate
-from flask_jwt_extended import JWTManager
-from flask_cors import CORS
+from fastapi import FastAPI, HTTPException, Depends, Request
+from fastapi.responses import JSONResponse
+from fastapi_jwt_auth import AuthJWT
+from fastapi_jwt_auth.exceptions import AuthJWTException, JWTDecodeError
+from fastapi.middleware.cors import CORSMiddleware
+from api_project.database import engine, Base, get_db
+from api_project.routes.auth_routes import auth_router
+from api_project.routes.documents import documents_router
+from api_project.routes.rewrites import rewrite_router
+from api_project.routes.search import search_router
 import os
+from pydantic import BaseModel
 
-# Initialize SQLAlchemy for database operations
-db = SQLAlchemy()
+class Settings(BaseModel):
+    authjwt_secret_key: str = os.environ.get('JWT_SECRET_KEY', 'default_jwt_secret_key')
+    authjwt_access_token_expires: int = int(os.environ.get('JWT_ACCESS_TOKEN_EXPIRES', 7000))
 
-# Initialize Migrate for database migrations
-migrate = Migrate()
+@AuthJWT.load_config
+def get_config():
+    return Settings()
 
-# Function to create and configure the Flask application
 def create_app():
-    app = Flask(__name__)
+    app = FastAPI()
 
-    # Configure the app with necessary settings
-    app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'default_secret_key')
-    app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('SQLALCHEMY_DATABASE_URI', 'sqlite:///site.db')
+    print(os.environ.get('JWT_SECRET_KEY', 'default_jwt_secret_key'))
 
-    # Enable Cross-Origin Resource Sharing (CORS) for the app
-    CORS(app)
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["http://localhost:3000"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
-    # Initialize database and migration functionalities with the app
-    db.init_app(app)
-    migrate.init_app(app, db)
+    app.include_router(auth_router, prefix='/auth')
+    app.include_router(documents_router, prefix='/docs')
+    app.include_router(rewrite_router, prefix='/fix')
+    app.include_router(search_router, prefix='/api')
 
-    # Import and register blueprints for different parts of the application
-    
-    from api_project.routes.auth_routes import auth_bp
-    app.register_blueprint(auth_bp, url_prefix='/auth')
+    @app.exception_handler(AuthJWTException)
+    def authjwt_exception_handler(request: Request, exc: AuthJWTException):
+        return JSONResponse(
+            status_code=exc.status_code,
+            content={"detail": exc.message}
+        )
 
-    from api_project.routes.documents import documents_bp
-    app.register_blueprint(documents_bp, url_prefix='/docs')
+    @app.exception_handler(JWTDecodeError)
+    def jwt_decode_error_handler(request: Request, exc: JWTDecodeError):
+        return JSONResponse(
+            status_code=exc.status_code,
+            content={"detail": "Token has expired or is invalid"}
+        )
 
-    from api_project.routes.rewrites import rewrite_bp
-    app.register_blueprint(rewrite_bp, url_prefix='/fix')
+    Base.metadata.create_all(bind=engine)
 
-    from api_project.routes.search import search_bp
-    app.register_blueprint(search_bp, url_prefix='/api')
-
-    # Configure JWT settings for the app
-    app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY', 'default_jwt_secret_key')
-    app.config['JWT_ACCESS_TOKEN_EXPIRES'] = int(os.environ.get('JWT_ACCESS_TOKEN_EXPIRES', 7000))
-    jwt = JWTManager(app)    
-
-    # Create all database tables within the application context
-    with app.app_context():
-        db.create_all()
-        
-    # Return the configured Flask app instance
     return app

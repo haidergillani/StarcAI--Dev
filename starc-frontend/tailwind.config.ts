@@ -6,7 +6,7 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ["Inter", ...fontFamily.sans],
+        sans: ['Roboto', 'sans-serif'],
       },
       minWidth: {
         '250': '250px',

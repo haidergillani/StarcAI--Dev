@@ -34,7 +34,7 @@ describe('SearchBar Component', () => {
     fireEvent.change(input, { target: { value: 'test query' } });
     fireEvent.click(searchButton);
 
-    expect(mockedAxios.get).toHaveBeenCalledWith("https://starcai.onrender.com/api/search", {
+    expect(mockedAxios.get).toHaveBeenCalledWith("http://127.0.0.1:2000/api/search", {
       params: {
         q: 'test query',
       },

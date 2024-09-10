@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useImperativeHandle, forwardRef } from 'react';
 import axios from 'axios';
 import Image from 'next/image';
 import { useRouter } from 'next/router';
@@ -8,7 +8,7 @@ import score_confidence from '../../assets/score_confidence.svg';
 import score_strategicforecast from '../../assets/score_strategicforecast.svg';
 import infoIcon from '../../assets/info.svg';
 
-export default function ScoreContainer() {
+const ScoreContainer = forwardRef((props, ref) => {
   // State to hold the individual scores
   const [scores, setScores] = useState({ "Strategic Forecast": 0, "Optimism": 0, "Confidence": 0 });
   const [overallScore, setOverallScore] = useState(0); // State to hold the overall score
@@ -18,9 +18,7 @@ export default function ScoreContainer() {
   type TooltipContent = {
     [key: string]: string;
   };
-  
 
-  
   // Tooltip content for each score
   const tooltipContent: TooltipContent = {
     "optimism": "Positive reactions in investors about your company and its operations.",
@@ -37,10 +35,10 @@ export default function ScoreContainer() {
   const closePopup = () => {
     setShowPopup(false);
   };
-  
-  // Effect hook to fetch scores from the backend
-  useEffect(() => {
-    // Retrieve the document ID from localStorage
+
+  // Function to fetch scores from the backend
+  const fetchScores = () => {
+    // Retrieve the document ID from the URL
     const pathArray = router.asPath.split('/');
     const docId = pathArray[pathArray.length - 1];
     console.log('Doc ID from score container: ' + docId);
@@ -51,33 +49,39 @@ export default function ScoreContainer() {
 
     // Ensure that docId is not null before making the request
     if (docId) {
-      console.log('Doc ID from score container: ' + docId);
-      axios.get(`https://starcai.onrender.com/docs/scores/${docId}`, {
-        
+      axios.get(`http://127.0.0.1:2000/docs/scores/${docId}`, {
         // Include the auth header if authToken is present
         headers: authToken ? { 'Authorization': `Bearer ${authToken}` } : {}
       })
-
       .then(response => {
-        const { Overall, ...individualScores } = response.data;
         const individualScoresData = response.data[0];
 
+        console.log('Individual scores data:', individualScoresData);
+        
+
         setScores({
-          "Strategic Forecast": Math.round(individualScoresData.forecast * 1) / 1,
+          
           "Optimism": Math.round(individualScoresData.optimism * 1) / 1,
-          "Confidence": Math.round(individualScoresData.confidence * 1) / 1
+          "Confidence": Math.round(individualScoresData.confidence * 1) / 1,
+          "Strategic Forecast": Math.round(individualScoresData.forecast * 1) / 1
         });
         setOverallScore(Math.round(individualScoresData.score * 1) / 1);
-         // Set the overall score separately
       })
       .catch(error => {
         console.error('There was an error fetching the scores!', error);
       });
     } else {
-      console.error('Document ID not found in localStorage');
+      console.error('Document ID not found in URL');
     }
-  }, []); // Dependency array remains empty to run only on component mount
+  };
 
+  // Effect hook to fetch scores from the backend every 1 second
+  useEffect(() => {
+    fetchScores(); // Initial fetch
+    const intervalId = setInterval(fetchScores, 1000); // Fetch scores every 1 second
+
+    return () => clearInterval(intervalId); // Cleanup interval on component unmount
+  }, []); // Dependency array remains empty to run only on component mount
 
   // Function to dynamically get the score icon
   const getScoreIcon = (key: string) => {
@@ -96,42 +100,29 @@ export default function ScoreContainer() {
   return (
     <div className="flex flex-col items-center p-4 relative" onClick={showPopup ? closePopup : undefined}>
       {/* Overall Score container with added bottom margin */}
-      <div className="overall-score-container flex items-center justify-between mb-10  w-full">
-        <h2 className="text-3xl font-bold">Overall Score</h2>
-        <span className="text-base font-bold">{overallScore}%</span>
+      <div className="overall-score-container flex items-center justify-between mb-10 w-full">
+        <span className="text-gray-700 text-[70px] font-bold">{overallScore}%</span>
+        <h2 className="text-2xl mt-[20px] mr-[180px]">Overall Score</h2>
       </div>
       {/* Mapping through each score to display them */}
       {Object.entries(scores).map(([key, value]: [string, number]) => (
         <div key={key} className="w-full mb-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              {/* Score icon */}
-              <Image src={getScoreIcon(key)} alt={`${key} icon`} width={24} height={24} className="mr-2" />
-              {/* Score name and info icon */}
-              <span className={`text-base font-bold mr-2 text-${key.toLowerCase()}`} style={{ color: `#${key === 'Optimism' ? '0043CE' : key === 'Confidence' ? 'EF5DA8' : '37C6AB'}` }}>
-                {key}
-              </span>
-              <div
-                className="cursor-pointer"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (typeof key === "string") {
-                    const content = tooltipContent[key.toLowerCase()];
-                    if (content) {
-                      handleInfoClick(content);
-                    }
-                  }
-                }}
-              >
-                <Image src={infoIcon} alt="Info" width={18} height={18} />
+          <div className="flex items-center">
+            {/* Score icon */}
+            <Image src={getScoreIcon(key)} alt={`${key} icon`} width={38} height={38} className="mr-4 mt-4" />
+            <div className="flex flex-col w-full">
+              <div className="flex justify-between">
+                {/* Score percentage and type */}
+                <div className="flex mb-2">
+                  <span className="text-[20px] font-bold text-black mr-4">{value}%</span>
+                  <span className="text-base text-black mt-2">{key}</span>
+                </div>
+              </div>
+              {/* Score bar */}
+              <div className="w-full bg-gray-200 rounded-full h-2.5 mt-1"> {/* Set the unfilled portion to light gray */}
+                <div className={`h-2.5 rounded-full`} style={{ width: `${value}%`, backgroundColor: value > 0 ? `#${key === 'Optimism' ? '0043CE' : key === 'Confidence' ? 'EF5DA8' : '37C6AB'}` : 'transparent' }}></div>
               </div>
             </div>
-            {/* Score percentage aligned with the end of the bar */}
-            <span className="text-base font-bold">{value}%</span>
-          </div>
-          {/* Score bar */}
-          <div className="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700 mt-1">
-            <div className={`bg-${key.toLowerCase()} h-2.5 rounded-full`} style={{ width: `${value}%`, backgroundColor: value > 0 ? `#${key === 'Optimism' ? '0043CE' : key === 'Confidence' ? 'EF5DA8' : '37C6AB'}` : 'transparent' }}></div>
           </div>
         </div>
       ))}
@@ -143,4 +134,6 @@ export default function ScoreContainer() {
       )}
     </div>
   );
-}
+});
+
+export default ScoreContainer;

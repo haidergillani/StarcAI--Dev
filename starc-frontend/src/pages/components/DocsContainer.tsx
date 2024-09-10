@@ -1,7 +1,7 @@
 import DocThumbnail from "./DocThumbnail";
 import SearchBar from "./SearchBar";
 import axios, { AxiosResponse } from "axios";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import router from "next/router";
 
 interface Document {
@@ -12,44 +12,73 @@ interface Document {
 }
 
 export default function DocsContainer() {
-  const apiUrl = 'https://starcai.onrender.com/';
+  const apiUrl = 'http://127.0.0.1:2000/api';
 
   const [documents, setDocuments] = useState<Document[]>([]);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchDocuments = async () => {
-      try {
-        const authToken = localStorage.getItem("authToken");
-        const response = await axios.get(`${apiUrl}/api/search`, {
-          params: {
-            q: "", // Fetch all documents
-          },
-          headers: {
-            Authorization: `Bearer ${authToken}`,
-          },
-        });
-        console.log("Response from fetchDocuments:", response);
-        handleSearchComplete(response);
-      } catch (error) {
-        console.error(error);
-      }
-    };
+  const fetchDocuments = useCallback(async (query: string = "", page: number = 1, limit: number = 12) => {
+    console.log("Fetching documents with query:", query);
+    const authToken = localStorage.getItem("authToken");
+    if (!authToken) {
+      setError("No auth token found. Please log in.");
+      router.push('/login'); // Redirect to login page
+      return;
+    }
 
-    fetchDocuments();
-  }, []); // Run once when the component mounts
-
-  const handleDelete = async (docId: number) => {
-    console.log("Delete clicked", docId);
     try {
-      const authToken = localStorage.getItem("authToken");
-      // Assuming `apiUrl` is defined somewhere in your code with the base URL of your API
-      await axios.delete(`${apiUrl}/docs/${docId}`, {
+      const response = await axios.get(`${apiUrl}/search`, {
+        params: {
+          q: query,
+          page: page,
+          limit: limit
+        },
         headers: {
           Authorization: `Bearer ${authToken}`,
         },
       });
-      // Assuming `setDocuments` and `documents` are part of your component's state management
+      handleSearchComplete(response);
+    } catch (error: any) {
+      if (error.response && error.response.status === 401) {
+        // Token might be expired, try to refresh it
+        try {
+          const refreshResponse = await axios.post("http://127.0.0.1:2000/auth/refresh", {}, {
+            headers: {
+              Authorization: `Bearer ${authToken}`,
+            },
+          });
+          localStorage.setItem("authToken", refreshResponse.data.access_token);
+          // Retry fetching documents with new token
+          fetchDocuments(query, page, limit);
+        } catch (refreshError) {
+          setError("Failed to refresh token. Please log in again.");
+          router.push('/login'); // Redirect to login page
+        }
+      } else {
+        setError("Failed to fetch documents");
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    console.log("Component mounted, fetching documents...");
+    fetchDocuments(); // Fetch documents with default parameters when the component mounts
+  }, [fetchDocuments]); // Run once when the component mounts
+
+  const handleDelete = async (docId: number) => {
+    try {
+      const authToken = localStorage.getItem("authToken");
+      if (!authToken) {
+        setError("No auth token found. Please log in.");
+        router.push('/login'); // Redirect to login page
+        return;
+      }
+
+      await axios.delete(`http://127.0.0.1:2000/docs/${docId}`, {
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+      });
       setDocuments(documents.filter((document) => document.id !== docId));
     } catch (error) {
       console.error(error);
@@ -57,28 +86,18 @@ export default function DocsContainer() {
   };
 
   const handleSearchComplete = (response: AxiosResponse) => {
-    // Returns correct documents and errors based on status code
     switch (response.status) {
       case 200:
-        // check response message to determine correct action
-        // no matching documents returns error text
-        if (response.data.message === "No matching documents found") {
-          setDocuments([]);
-          setError("No documents match the query");
-          break;
-          // other message indicates search results were found
-        } else {
-          setDocuments(
-            response.data.results.map((doc: any) => ({
-              id: doc.id,
-              title: doc.title,
-              wordCount: doc.word_count, // Make sure it matches the expected property name
-              onDelete: handleDelete,
-            })),
-          );
-          setError(null);
-          break;
-        }
+        setDocuments(
+          response.data.results.map((doc: any) => ({
+            id: doc.id,
+            title: doc.title,
+            wordCount: doc.word_count,
+            onDelete: handleDelete,
+          })),
+        );
+        setError(null);
+        break;
       case 204:
         setDocuments([]);
         setError("No documents exist");
@@ -89,7 +108,6 @@ export default function DocsContainer() {
   };
 
   const handleDocClick = (id: number) => {
-    // Navigate to the corresponding page
     router.push(`/home/${id}`);
   };
 
@@ -97,11 +115,9 @@ export default function DocsContainer() {
     <div className="flex h-full flex-col space-y-24 pb-57 pl-116 pr-116 pt-57">
       <div className="text-lg_1 font-medium">Documents</div>
       <div>
-        <SearchBar onSearchComplete={handleSearchComplete} />
+        <SearchBar onSearchComplete={fetchDocuments} />
       </div>
-      {/* Shows loaded documents in grid format */}
       <div className="flex flex-wrap justify-start gap-x-37 gap-y-57 pt-42">
-        {/* If there is an error, documents is an empty array */}
         {error && (
           <div className="text-base font-normal text-black">{error}</div>
         )}

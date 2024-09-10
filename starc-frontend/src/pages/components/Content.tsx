@@ -1,91 +1,94 @@
-// keep as is
-
-import axios, { Axios } from "axios";
+import axios from "axios";
 import { useRouter } from "next/router";
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useCallback } from "react";
+import { debounce } from "../../utills/debounce";
 
-interface Document {
-  id: number;
-  title: string;
-  text: string;
-  // Add other relevant properties of a document
-}
-interface ContentProps {
-  document: Document | null;
-}
-
-const Content = ({ document }: ContentProps) => {
-  const [text, setText] = useState(""); // State to store the text from the editor
-  const [title, setTitle] = useState(""); // State to store the title of the document
+const Content = ({ onSave, onUpdateText, text, setText, title }: { onSave: () => void, onUpdateText: (text: string) => void, text: string, setText: (text: string) => void, title: string }) => {
   const [wordCount, setWordCount] = useState(0); // State for word count
   const [charCount, setCharCount] = useState(0); // State for character count
   const [countType, setCountType] = useState("word"); // State to toggle between word and character count
   const [dropdownVisible, setDropdownVisible] = useState(false); // State to control the visibility of the dropdown
-  const [isEditingTitle, setIsEditingTitle] = useState(false); // State to track if we're editing the title
-  const titleInputRef = useRef<HTMLInputElement | null>(null);
 
-  const apiUrl = 'https://starcai.onrender.com/';
+  const apiUrl = 'http://127.0.0.1:2000';
   const router = useRouter();
+
   // Function to update word and character counts based on the text
-
   const updateCounts = (text: string) => {
-    const words = text
-      .trim()
-      .split(/\s+/)
-      .filter((word) => word);
-    setWordCount(words.length);
-    setCharCount(text.length);
-  };
-
-  // Effect to focus the title input when it becomes editable
-  useEffect(() => {
-    if (isEditingTitle) {
-      titleInputRef.current!.focus();
-    }
-  }, [isEditingTitle]);
-
-  const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setTitle(e.target.value);
-  };
-
-  const handleTitleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") {
-      // Save the title when Enter is pressed
-      setIsEditingTitle(false);
-      // Here you would also update the title in the document's storage
+    if (text) {
+      const words = text.trim().split(/\s+/).length;
+      const chars = text.length;
+      setWordCount(words);
+      setCharCount(chars);
+    } else {
+      setWordCount(0);
+      setCharCount(0);
     }
   };
 
-  const handleTitleBlur = () => {
-    // Save the title when focus is lost
-    setIsEditingTitle(false);
-    // Here you would also update the title in the document's storage
+  const saveDocument = async (callback?: () => void) => {
+    const openDocId = localStorage.getItem("openDocId");
+    const authToken = localStorage.getItem("authToken");
+    if (openDocId && authToken) {
+      try {
+        await axios.put(`${apiUrl}/docs/${openDocId}`, {
+          title: title, // Use the original document title
+          text: text
+        }, {
+          headers: {
+            Authorization: `Bearer ${authToken}`,
+          },
+        });
+        if (callback) callback();
+      } catch (error) {
+        console.error("Error saving document:", error);
+      }
+    }
+  };
+
+  const generateSuggestions = useCallback(debounce(async (text: string) => {
+    const openDocId = localStorage.getItem("openDocId");
+    const authToken = localStorage.getItem("authToken");
+    if (openDocId && authToken) {
+      try {
+        await axios.post(`${apiUrl}/fix/${openDocId}/suggestions`, {}, {
+          headers: {
+            Authorization: `Bearer ${authToken}`,
+          },
+        });
+      } catch (error) {
+        console.error("Error generating suggestions:", error);
+      }
+    }
+  }, 1000), []); // Debounce API call by 1 second
+
+  const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const newText = e.target.value;
+    setText(newText);
+    updateCounts(newText);
+    saveDocument(onSave); // Save the document immediately
+    onUpdateText(newText);
   };
 
   // Effect to update counts whenever the text changes
   useEffect(() => {
-    // updateCounts(text);
+    updateCounts(text);
   }, [text]);
 
   useEffect(() => {
     const openDocId = localStorage.getItem("openDocId");
-    console.log(openDocId);
     if (openDocId) {
       const fetchDocument = async () => {
-        const newOpenDocId = localStorage.getItem("openDocId");
-        console.log(newOpenDocId);
         const authToken = localStorage.getItem("authToken");
         try {
-          const response = await axios.get(`${apiUrl}/docs/${newOpenDocId}`, {
+          const response = await axios.get(`${apiUrl}/docs/${openDocId}`, {
             headers: {
               Authorization: `Bearer ${authToken}`,
             },
           });
           if (response.status === 200) {
-            console.log("ReSPONSE", response.data);
-            setText(response.data.sentences_combined);
-            setTitle(response.data.title);
-            updateCounts(response.data.sentences_combined);
+            console.log(response.data);
+            setText(response.data.text_chunk);
+            updateCounts(response.data.text_chunk);
           }
         } catch (error: any) {
           if (error.response && error.response.status === 404) {
@@ -101,37 +104,19 @@ const Content = ({ document }: ContentProps) => {
   }, []);
 
   return (
-    <div className="flex h-full flex-col" style={{ overflowY: "hidden" }}>
-      {isEditingTitle ? (
-        <input
-          ref={titleInputRef}
-          type="text"
-          value={title}
-          onChange={handleTitleChange}
-          onKeyDown={handleTitleKeyDown}
-          onBlur={handleTitleBlur}
-          className="ml-83 border-none bg-transparent text-lg font-bold text-gray-50 outline-none"
-        />
-      ) : (
-        <h1
-          className="ml-83 mt-42 cursor-pointer text-lg font-bold text-gray-50 hover:underline"
-          onClick={() => setIsEditingTitle(true)}
-        >
-          {title}
-        </h1>
-      )}
+    <div className="flex  h-full mt-[60px] rounded-lg flex-col bg-slate-50"  style={{ overflowY: "hidden" }}>
       <textarea
         value={text}
-        onChange={(e) => setText(e.target.value)}
-        className="flex-1 resize-none overflow-auto border-none py-2 pl-20 pr-6 outline-none transition-all sm:text-sm md:text-base lg:text-lg"
+        onChange={handleTextChange}
+        className="flex-1 ml-[30px] bg-slate-50 mt-[10px]  resize-none overflow-auto border-none py-2  pr-6 outline-none transition-all sm:text-sm md:text-base lg:text-lg"
         placeholder="Type or paste your text here..."
         autoFocus
       />
-      <div className="flex items-center justify-between border-t p-4">
+      <div className="flex items-center justify-between p-4"> {/* Removed border-t class */}
         <div className="ml-auto">
           {/* Toggle between word count and character count */}
           <div
-            className="relative cursor-pointer rounded-lg p-2 text-gray-500 hover:bg-gray-200"
+            className="relative cursor-pointer rounded-lg  p-2 text-gray-500 hover:bg-gray-200"
             onClick={() => setDropdownVisible(!dropdownVisible)}
           >
             {countType === "word"

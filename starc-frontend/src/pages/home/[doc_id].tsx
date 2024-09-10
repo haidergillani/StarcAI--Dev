@@ -17,7 +17,7 @@ const DocumentPage = () => {
       const fetchDocument = async () => {
         const authToken = localStorage.getItem('authToken');
         try {
-          const response = await axios.get(`https://starcai.onrender.com/docs/${doc_id}`, {
+          const response = await axios.get(`http://127.0.0.1:2000/docs/${doc_id}`, {
             headers: { Authorization: `Bearer ${authToken}` },
           });
           setDocument(response.data);

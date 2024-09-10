@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import axios from "axios";
 import Link from "next/link";
 import { useRouter } from "next/router";
+import { GoogleLogin, googleLogout } from "@react-oauth/google";
 
 export default function LoginForm() {
   const [loginIdentifier, setLoginIdentifier] = useState("");
@@ -12,13 +13,11 @@ export default function LoginForm() {
 
   const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = event.target;
-    // update stored user values when fields edited
     if (name === "loginIdentifier") setLoginIdentifier(value);
     if (name === "password") setPassword(value);
   };
 
   const isFormValid = () => {
-    // check if all fields are filled
     return loginIdentifier && password;
   };
 
@@ -26,14 +25,13 @@ export default function LoginForm() {
     event.preventDefault();
     if (isFormValid()) {
       try {
-        const response = await axios.post("https://starcai.onrender.com/auth/login", {
+        const response = await axios.post("http://127.0.0.1:2000/auth/login", {
           login_identifier: loginIdentifier,
           password,
         });
 
         console.log("Login Response:", response.data);
 
-        // Saving the token in local storage
         const accessToken = response.data.access_token;
         if (accessToken) {
           localStorage.setItem("authToken", accessToken);
@@ -48,8 +46,32 @@ export default function LoginForm() {
     }
   };
 
+  const handleGoogleSuccess = async (response: any) => {
+    try {
+      const res = await axios.post("http://127.0.0.1:2000/auth/google", {
+        token: response.credential,
+      });
+
+      const accessToken = res.data.access_token;
+      if (accessToken) {
+        localStorage.setItem("authToken", accessToken);
+        router.push("/docs");
+      } else {
+        console.error("No access token received");
+      }
+    } catch (error) {
+      setLoginError("Google login failed");
+      console.error(error);
+    }
+  };
+
+  const handleGoogleFailure = (error: any) => {
+    console.error("Google login error:", error);
+    setLoginError("Google login failed");
+  };
+
   return (
-    <div className="flex h-screen flex-col items-center space-y-42 bg-white pb-150 pl-42 pr-42 pt-150">
+    <div className="flex h-screen flex-col items-center space-y-42 bg-white pb-150 pl-42 pr-42 pt-[100px]">
       <div className="flex flex-col items-center">
         <div className="text-base font-normal text-black">WELCOME BACK</div>
         <div className="text-lg_1 font-medium text-black">
@@ -57,9 +79,7 @@ export default function LoginForm() {
         </div>
       </div>
       <form className="flex flex-col space-y-4">
-        {/* show unsuccessful login errors */}
         {loginError && <div className="text-red-500">{loginError}</div>}
-        {/* username or email field */}
         <input
           type="loginIdentifier"
           name="loginIdentifier"
@@ -69,7 +89,6 @@ export default function LoginForm() {
           className="w-380 rounded border bg-background p-16"
           required
         />
-        {/* password field */}
         <input
           type="password"
           name="password"
@@ -88,7 +107,17 @@ export default function LoginForm() {
           CONTINUE
         </button>
       </form>
-      {/* Link to navigate to the register page */}
+      <div className="flex items-center my-4 w-full">
+        <div className="flex-grow border-t border-gray-300"></div>
+        <span className="mx-4 text-gray-500">or</span>
+        <div className="flex-grow border-t border-gray-300"></div>
+      </div>
+      <div className="flex flex-col items-center space-y-4">
+        <GoogleLogin
+          onSuccess={handleGoogleSuccess}
+          onError={handleGoogleFailure}
+        />
+      </div>
       <div className="flex space-x-6 text-base text-black">
         <div className="font-normal">New User?</div>
         <Link className="font-bold" href="/register">

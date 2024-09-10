@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
-import isEmail from "validator/lib/isEmail";
 import axios, { AxiosError } from "axios";
 import Link from "next/link";
 import { useRouter } from "next/router";
+import { GoogleLogin, googleLogout } from "@react-oauth/google";
 
 export default function RegisterForm() {
   interface ErrorResponse {
@@ -38,13 +38,18 @@ export default function RegisterForm() {
     if (name === "confirmPassword") setConfirmPassword(value);
   };
 
+  const validateEmail = (email: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
   useEffect(() => {
     // touched boolean ensures errors are only shown if the user has engaged with the field
     setErrors({
       username:
         touched.username && username.trim() === "" ? "Name is required" : "",
       email:
-        touched.email && (!email || !isEmail(email))
+        touched.email && (!email || !validateEmail(email))
           ? !email
             ? "Email is required"
             : "Not a valid email"
@@ -90,7 +95,7 @@ export default function RegisterForm() {
     if (isFormValid()) {
       try {
         const response = await axios.post(
-          "https://starcai.onrender.com/auth/register",
+          "http://127.0.0.1:2000/auth/register",
           {
             username,
             email,
@@ -111,8 +116,36 @@ export default function RegisterForm() {
     }
   };
 
+  const handleGoogleSuccess = async (response: any) => {
+    try {
+      console.log(response);
+      console.log(response.credential);
+      
+      
+      const res = await axios.post("http://127.0.0.1:2000/auth/google", {
+        credential: response.credential,
+      });
+
+      const accessToken = res.data.access_token;
+      if (accessToken) {
+        localStorage.setItem("authToken", accessToken);
+        router.push("/docs");
+      } else {
+        console.error("No access token received");
+      }
+    } catch (error) {
+      setRegisterError("Google sign-up failed");
+      console.error(error);
+    }
+  };
+
+  const handleGoogleFailure = (error: any) => {
+    console.error("Google sign-up error:", error);
+    setRegisterError("Google sign-up failed");
+  };
+
   return (
-    <div className="flex h-screen flex-col items-center space-y-42 bg-white pb-150 pl-42 pr-42 pt-150">
+    <div className="flex h-screen flex-col items-center space-y-42 bg-white pb-150 pl-42 pr-42 pt-[30px]">
       <div className="flex flex-col items-center">
         <div className="text-base font-normal text-black">WELCOME!</div>
         <div className="text-lg_1 font-medium text-black">
@@ -188,7 +221,19 @@ export default function RegisterForm() {
         >
           CREATE ACCOUNT
         </button>
+
       </form>
+      <div className="flex items-center my-4 w-full">
+        <div className="flex-grow border-t border-gray-300"></div>
+        <span className="mx-4 text-gray-500">or</span>
+        <div className="flex-grow border-t border-gray-300"></div>
+      </div>
+      <div className="flex flex-col items-center space-y-4">
+        <GoogleLogin
+          onSuccess={handleGoogleSuccess}
+          onError={handleGoogleFailure}
+        />
+      </div>
       {/* Navigate to login page */}
       <div className="flex space-x-6 text-base text-black">
         <div className="font-normal">Already have an account?</div>
