@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useImperativeHandle, forwardRef } from 'react';
+import React, { useState, useEffect, useImperativeHandle, forwardRef, useCallback, useRef } from 'react';
 import axios from 'axios';
 import Image from 'next/image';
 import { useRouter } from 'next/router';
@@ -8,7 +8,7 @@ import score_confidence from '../../assets/score_confidence.svg';
 import score_strategicforecast from '../../assets/score_strategicforecast.svg';
 import infoIcon from '../../assets/info.svg';
 
-const ScoreContainer = forwardRef((props, ref) => {
+const ScoreContainer = forwardRef(({ text }: { text?: string }, ref) => {
   // State to hold the individual scores
   const [scores, setScores] = useState({ "Strategic Forecast": 0, "Optimism": 0, "Confidence": 0 });
   const [overallScore, setOverallScore] = useState(0); // State to hold the overall score
@@ -75,13 +75,40 @@ const ScoreContainer = forwardRef((props, ref) => {
     }
   };
 
-  // Effect hook to fetch scores from the backend every 1 second
-  useEffect(() => {
-    fetchScores(); // Initial fetch
-    const intervalId = setInterval(fetchScores, 1000); // Fetch scores every 1 second
+  // Add debounce timer ref
+  const debounceTimer = useRef<NodeJS.Timeout>();
 
-    return () => clearInterval(intervalId); // Cleanup interval on component unmount
-  }, []); // Dependency array remains empty to run only on component mount
+  // Debounced fetch function
+  const debouncedFetchScores = useCallback(() => {
+    if (debounceTimer.current) {
+      clearTimeout(debounceTimer.current);
+    }
+    
+    debounceTimer.current = setTimeout(() => {
+      fetchScores();
+    }, 10000); // Wait 1 second after typing stops
+  }, []);
+
+  // Effect hook for text changes and periodic updates
+  useEffect(() => {
+    const pathArray = router.asPath.split('/');
+    const docId = pathArray[pathArray.length - 1];
+    
+    if (!docId || !router.isReady) return;
+
+    // Use debounced fetch when text changes
+    debouncedFetchScores();
+
+    // Set up periodic fetch every 10 minutes
+    const intervalId = setInterval(fetchScores, 600000);
+
+    return () => {
+      clearInterval(intervalId);
+      if (debounceTimer.current) {
+        clearTimeout(debounceTimer.current);
+      }
+    };
+  }, [router.isReady, router.asPath, text, debouncedFetchScores]);
 
   // Function to dynamically get the score icon
   const getScoreIcon = (key: string) => {
