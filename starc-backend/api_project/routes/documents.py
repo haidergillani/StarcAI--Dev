@@ -3,7 +3,7 @@ from fastapi_jwt_auth import AuthJWT
 from sqlalchemy.orm import Session
 from api_project.models import Document, TextChunks, InitialScore, FinalScore
 from api_project.database import get_db
-from api_project.processing import get_scores, get_rewrite, chat_bot
+from api_project.processing import get_scoresSA, get_rewrite, chat_bot
 from api_project.schemas import DocumentCreate, DocumentResponse, PDFUploadResponse, ChatBotRequest, ChatBotResponse,SaveRewriteRequest
 from pypdf import PdfReader
 from fastapi.responses import StreamingResponse
@@ -27,9 +27,9 @@ def process_document(user_id: int, title: str, text: str, db: Session):
     db.refresh(new_document)
 
     new_text_chunk = TextChunks(document_id=new_document.id, input_text_chunk=text)
-    original_scores_data = get_scores(text)
+    original_scores_data = get_scoresSA(text)
     rewritten_text = get_rewrite(text)
-    rewritten_scores_data = get_scores(rewritten_text)
+    rewritten_scores_data = get_scoresSA(rewritten_text)
 
     new_text_chunk.rewritten_text = rewritten_text
     db.add(new_text_chunk)
@@ -143,8 +143,8 @@ def update_document(doc_id: int, document: DocumentCreate, Authorize: AuthJWT = 
             db.commit()
             db.refresh(existing_text_chunk)
 
-            original_scores_data = get_scores(document.text)
-            rewritten_scores_data = get_scores(rewritten_text)
+            original_scores_data = get_scoresSA(document.text)
+            rewritten_scores_data = get_scoresSA(rewritten_text)
 
             initial_score = db.query(InitialScore).filter_by(text_chunk_id=existing_text_chunk.id).first()
             if initial_score:

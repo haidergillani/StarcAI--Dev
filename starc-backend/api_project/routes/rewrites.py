@@ -6,7 +6,7 @@ from api_project.database import get_db
 from api_project.schemas import TextChunkUpdate, TextChunkResponse, SuggestionCreate, SuggestionResponse
 from api_project.schemas import ChatRequest, ChatMessage,ChatResponse ,RewriteRequest # Import the Pydantic models
 from typing import List,Dict
-from api_project.processing import generate_sentence_suggestions ,chat_bot ,rewrite_text_with_prompt,get_scores # Import the function to generate suggestions
+from api_project.processing import generate_sentence_suggestions ,chat_bot ,rewrite_text_with_prompt,get_scoresSA # Import the function to generate suggestions
 
 rewrite_router = APIRouter()
 
@@ -252,7 +252,7 @@ def rewrite_text(document_id: int, rewrite_request: RewriteRequest, Authorize: A
     db.commit()
 
     # Recalculate and store the scores
-    rewritten_scores_data = get_scores(rewritten_text)
+    rewritten_scores_data = get_scoresSA(rewritten_text)
     print(rewritten_scores_data)
     final_score = db.query(FinalScore).filter_by(text_chunk_id=text_chunk.id).first()
     if final_score:
