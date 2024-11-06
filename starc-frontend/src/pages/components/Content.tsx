@@ -25,25 +25,29 @@ const Content = ({ onSave, onUpdateText, text, setText, title }: { onSave: () =>
     }
   };
 
-  const saveDocument = async (callback?: () => void) => {
-    const openDocId = localStorage.getItem("openDocId");
-    const authToken = localStorage.getItem("authToken");
-    if (openDocId && authToken) {
-      try {
-        await axios.put(`${apiUrl}/docs/${openDocId}`, {
-          title: title, // Use the original document title
-          text: text
-        }, {
-          headers: {
-            Authorization: `Bearer ${authToken}`,
-          },
-        });
-        if (callback) callback();
-      } catch (error) {
-        console.error("Error saving document:", error);
+  // Create debounced save function
+  const debouncedSave = useCallback(
+    debounce(async (newText: string, callback?: () => void) => {
+      const openDocId = localStorage.getItem("openDocId");
+      const authToken = localStorage.getItem("authToken");
+      if (openDocId && authToken) {
+        try {
+          await axios.put(`${apiUrl}/docs/${openDocId}`, {
+            title: title,
+            text: newText
+          }, {
+            headers: {
+              Authorization: `Bearer ${authToken}`,
+            },
+          });
+          if (callback) callback();
+        } catch (error) {
+          console.error("Error saving document:", error);
+        }
       }
-    }
-  };
+    }, 10000), // 1 second delay
+    [title]
+  );
 
   const generateSuggestions = useCallback(debounce(async (text: string) => {
     const openDocId = localStorage.getItem("openDocId");
@@ -65,7 +69,7 @@ const Content = ({ onSave, onUpdateText, text, setText, title }: { onSave: () =>
     const newText = e.target.value;
     setText(newText);
     updateCounts(newText);
-    saveDocument(onSave); // Save the document immediately
+    debouncedSave(newText, onSave); // Use debounced save instead of immediate save
     onUpdateText(newText);
   };
 

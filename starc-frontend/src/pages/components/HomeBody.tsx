@@ -73,7 +73,7 @@ export default function HomeBody() {
         <Content onSave={handleSave} onUpdateText={handleUpdateText} text={text} setText={setText} title={title} />
       </div>
       <div className="w-[30%] pt-35 pb-42 pr-33 min-w-250">
-        <ScoreContainer ref={scoreContainerRef} />
+        <ScoreContainer ref={scoreContainerRef} text={text} />
         {documentId && <Sidebar documentId={documentId} onUpdateText={handleUpdateText} suggestionsContainerRef={suggestionsContainerRef} setText={setText} />}
       </div>
     </div>
