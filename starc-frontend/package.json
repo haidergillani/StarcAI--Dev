@@ -2,13 +2,18 @@
   "name": "starc-frontend",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=18.x",
+    "npm": ">=8.x"
+  },
   "scripts": {
     "build": "next build",
     "dev": "next dev",
     "lint": "next lint",
     "test": "jest",
     "test:watch": "jest --watchAll",
-    "start": "next start"
+    "start": "next start -p $PORT",
+    "heroku-postbuild": "npm run build"
   },
   "dependencies": {
     "@react-oauth/google": "^0.12.1",
@@ -16,7 +21,6 @@
     "axios": "^1.6.2",
     "lodash": "^4.17.21",
     "next": "^14.0.0",
-    "nvm": "^0.0.4",
     "quill": "^1.3.7",
     "react": "18.2.0",
     "react-circular-progressbar": "^2.1.0",
