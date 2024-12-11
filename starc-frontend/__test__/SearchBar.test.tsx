@@ -20,7 +20,7 @@ describe('SearchBar Component', () => {
 
   it('updates the query state on input change', () => {
     const { getByPlaceholderText } = render(<SearchBar onSearchComplete={mockOnSearchComplete} />);
-    const input = getByPlaceholderText(/Document name or keywords.../i);
+    const input = getByPlaceholderText(/Document name or keywords.../i) as HTMLInputElement;
 
     fireEvent.change(input, { target: { value: 'test query' } });
     expect(input.value).toBe('test query');
@@ -28,12 +28,13 @@ describe('SearchBar Component', () => {
 
   it('calls the search API on form submission', () => {
     const { getByPlaceholderText, getByText } = render(<SearchBar onSearchComplete={mockOnSearchComplete} />);
-    const input = getByPlaceholderText(/Document name or keywords.../i);
+    const input = getByPlaceholderText(/Document name or keywords.../i) as HTMLInputElement;
     const searchButton = getByText(/Search/i);
 
     fireEvent.change(input, { target: { value: 'test query' } });
     fireEvent.click(searchButton);
 
+    expect(mockedAxios.get).toHaveBeenCalledTimes(1);
     expect(mockedAxios.get).toHaveBeenCalledWith("http://127.0.0.1:2000/api/search", {
       params: {
         q: 'test query',

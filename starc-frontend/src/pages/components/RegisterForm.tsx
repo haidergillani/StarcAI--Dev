@@ -1,13 +1,20 @@
 import React, { useState, useEffect } from "react";
-import axios, { AxiosError } from "axios";
+import axios from "axios";
+import type { AxiosError } from "axios";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { GoogleLogin, googleLogout } from "@react-oauth/google";
+import { GoogleLogin } from "@react-oauth/google";
+import type { CredentialResponse } from "@react-oauth/google";
+
+interface ErrorResponse {
+  message: string;
+}
+
+interface AuthResponse {
+  access_token: string;
+}
 
 export default function RegisterForm() {
-  interface ErrorResponse {
-    message: string;
-  }
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -103,10 +110,10 @@ export default function RegisterForm() {
           },
         );
         console.log(response.data);
-        router.push("/login");
+        void router.push("/login");
       } catch (error) {
         const axiosError = error as AxiosError;
-        if (axiosError.response && axiosError.response.data) {
+        if (axiosError.response?.data) {
           const errorResponse = axiosError.response.data as ErrorResponse;
           setRegisterError(errorResponse.message);
         } else {
@@ -116,20 +123,21 @@ export default function RegisterForm() {
     }
   };
 
-  const handleGoogleSuccess = async (response: any) => {
+  const handleGoogleSuccess = async (response: CredentialResponse) => {
     try {
       console.log(response);
-      console.log(response.credential);
+      if (!response.credential) {
+        throw new Error('No credential received');
+      }
       
-      
-      const res = await axios.post("http://127.0.0.1:2000/auth/google", {
+      const res = await axios.post<AuthResponse>("http://127.0.0.1:2000/auth/google", {
         credential: response.credential,
       });
 
       const accessToken = res.data.access_token;
       if (accessToken) {
         localStorage.setItem("authToken", accessToken);
-        router.push("/docs");
+        void router.push("/docs");
       } else {
         console.error("No access token received");
       }

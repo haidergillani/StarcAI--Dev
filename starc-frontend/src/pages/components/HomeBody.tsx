@@ -5,6 +5,18 @@ import ScoreContainer from "./ScoreContainer";
 import Chatbot from "./Chatbot";
 import axios from "axios";
 
+// Add interfaces for API responses
+interface DocumentResponse {
+  title: string;
+  text_chunk: string;
+}
+
+interface ErrorResponse {
+  response: {
+    status: number;
+  };
+}
+
 export default function HomeBody() {
   const scoreContainerRef = useRef<{ fetchScores: () => void } | null>(null);
   const [documentId, setDocumentId] = useState<number | null>(null);
@@ -19,8 +31,7 @@ export default function HomeBody() {
     }
   };
 
-  const handleUpdateText = (newText: string) => {
-    // Update the text in the Content component
+  const handleUpdateText = (_newText: string) => {
     if (suggestionsContainerRef.current) {
       suggestionsContainerRef.current.fetchSuggestions();
     }
@@ -39,25 +50,29 @@ export default function HomeBody() {
       const fetchDocument = async () => {
         const authToken = localStorage.getItem("authToken");
         try {
-          const response = await axios.get(`${apiUrl}/docs/${openDocId}`, {
-            headers: {
-              Authorization: `Bearer ${authToken}`,
-            },
-          });
+          const response = await axios.get<DocumentResponse>(
+            `${apiUrl}/docs/${openDocId}`,
+            {
+              headers: {
+                Authorization: `Bearer ${authToken}`,
+              },
+            }
+          );
           if (response.status === 200) {
             console.log(response.data);
             setTitle(response.data.title);
-            setText(response.data.text_chunk); // Ensure text is set here
+            setText(response.data.text_chunk);
           }
-        } catch (error: any) {
-          if (error.response && error.response.status === 404) {
+        } catch (error: unknown) {
+          const typedError = error as ErrorResponse;
+          if (typedError.response && typedError.response.status === 404) {
             console.error("Document not found or access denied");
           } else {
             console.error(error);
           }
         }
       };
-      fetchDocument();
+      void fetchDocument();
     }
   }, []);
 

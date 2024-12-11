@@ -10,7 +10,7 @@ from fastapi.responses import StreamingResponse
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import LETTER
 from reportlab.lib.styles import getSampleStyleSheet
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Frame
+from reportlab.platypus import Paragraph, Frame
 import io
 import logging
 

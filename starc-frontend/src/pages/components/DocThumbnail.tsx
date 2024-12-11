@@ -19,11 +19,11 @@ export default function DocThumbnail({
 }: DocThumbnailProps) {
   const router = useRouter();
 
-  const handleClick = () => {
-    // Navigate to the corresponding page
-    // TODO: how to implement correct document opening
-    router.push(`/home/${id}`);
-    const openDocId = localStorage.setItem("openDocId", id.toString());
+  const handleClick = async () => {
+    // Store the ID first
+    localStorage.setItem("openDocId", id.toString());
+    // Then navigate
+    await router.push(`/home/${id}`);
   };
 
   const handleDelete = (id: number) => {
@@ -31,13 +31,17 @@ export default function DocThumbnail({
   };
 
   return (
-    // Document card with basic summary info
     <div
-      onClick={handleClick}
+      onClick={() => void handleClick()}
       className=" flex h-124 w-250 cursor-pointer flex-col space-y-24 rounded-lg border border-gray-20 bg-white pb-16 pl-24 pr-24 pt-16"
     >
       <div className="flex justify-between">
-        <Image src={documentIcon} alt="document icon" />
+        <Image 
+          src={documentIcon as string} 
+          alt="document icon" 
+          width={24}
+          height={24}
+        />
         <button
           onClick={(e) => {
             e.stopPropagation();
@@ -45,7 +49,12 @@ export default function DocThumbnail({
           }}
           className="cursor-pointer"
         >
-          <Image src={trashIcon} alt="trash icon" />
+          <Image 
+            src={trashIcon as string} 
+            alt="trash icon"
+            width={24}
+            height={24}
+          />
         </button>
       </div>
       <div className="flex flex-col">

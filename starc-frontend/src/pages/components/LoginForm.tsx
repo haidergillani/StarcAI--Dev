@@ -2,13 +2,17 @@ import React, { useState } from "react";
 import axios from "axios";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { GoogleLogin, googleLogout } from "@react-oauth/google";
+import { GoogleLogin } from "@react-oauth/google";
+import type { CredentialResponse } from "@react-oauth/google";
+
+interface AuthResponse {
+  access_token: string;
+}
 
 export default function LoginForm() {
   const [loginIdentifier, setLoginIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [loginError, setLoginError] = useState("");
-
   const router = useRouter();
 
   const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -25,17 +29,15 @@ export default function LoginForm() {
     event.preventDefault();
     if (isFormValid()) {
       try {
-        const response = await axios.post("http://127.0.0.1:2000/auth/login", {
+        const response = await axios.post<AuthResponse>("http://127.0.0.1:2000/auth/login", {
           login_identifier: loginIdentifier,
           password,
         });
 
-        console.log("Login Response:", response.data);
-
         const accessToken = response.data.access_token;
         if (accessToken) {
           localStorage.setItem("authToken", accessToken);
-          router.push("/docs"); // Redirecting to '/docs' page after successful login
+          void router.push("/docs");
         } else {
           console.error("No access token received");
         }
@@ -46,16 +48,20 @@ export default function LoginForm() {
     }
   };
 
-  const handleGoogleSuccess = async (response: any) => {
+  const handleGoogleSuccess = async (response: CredentialResponse) => {
     try {
-      const res = await axios.post("http://127.0.0.1:2000/auth/google", {
+      if (!response.credential) {
+        throw new Error('No credential received');
+      }
+
+      const res = await axios.post<AuthResponse>("http://127.0.0.1:2000/auth/google", {
         token: response.credential,
       });
 
       const accessToken = res.data.access_token;
       if (accessToken) {
         localStorage.setItem("authToken", accessToken);
-        router.push("/docs");
+        void router.push("/docs");
       } else {
         console.error("No access token received");
       }

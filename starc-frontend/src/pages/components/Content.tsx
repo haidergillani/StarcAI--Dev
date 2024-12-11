@@ -1,18 +1,28 @@
 import axios from "axios";
-import { useRouter } from "next/router";
 import React, { useState, useEffect, useCallback } from "react";
 import { debounce } from "../../utills/debounce";
 
-const Content = ({ onSave, onUpdateText, text, setText, title }: { onSave: () => void, onUpdateText: (text: string) => void, text: string, setText: (text: string) => void, title: string }) => {
-  const [wordCount, setWordCount] = useState(0); // State for word count
-  const [charCount, setCharCount] = useState(0); // State for character count
-  const [countType, setCountType] = useState("word"); // State to toggle between word and character count
-  const [dropdownVisible, setDropdownVisible] = useState(false); // State to control the visibility of the dropdown
+interface ContentProps {
+  onSave: () => void;
+  onUpdateText: (text: string) => void;
+  text: string;
+  setText: (text: string) => void;
+  title: string;
+}
+
+interface DocumentResponse {
+  text_chunk: string;
+  title: string;
+}
+
+const Content = ({ onSave, onUpdateText, text, setText, title }: ContentProps) => {
+  const [wordCount, setWordCount] = useState(0);
+  const [charCount, setCharCount] = useState(0);
+  const [countType, setCountType] = useState("word");
+  const [dropdownVisible, setDropdownVisible] = useState(false);
 
   const apiUrl = 'http://127.0.0.1:2000';
-  const router = useRouter();
 
-  // Function to update word and character counts based on the text
   const updateCounts = (text: string) => {
     if (text) {
       const words = text.trim().split(/\s+/).length;
@@ -25,55 +35,35 @@ const Content = ({ onSave, onUpdateText, text, setText, title }: { onSave: () =>
     }
   };
 
-  // Create debounced save function
-  const debouncedSave = useCallback(
-    debounce(async (newText: string, callback?: () => void) => {
+  const debouncedSave = useCallback(() => {
+    return debounce((newText: string, callback?: () => void) => {
       const openDocId = localStorage.getItem("openDocId");
       const authToken = localStorage.getItem("authToken");
       if (openDocId && authToken) {
-        try {
-          await axios.put(`${apiUrl}/docs/${openDocId}`, {
-            title: title,
-            text: newText
-          }, {
-            headers: {
-              Authorization: `Bearer ${authToken}`,
-            },
-          });
-          if (callback) callback();
-        } catch (error) {
-          console.error("Error saving document:", error);
-        }
-      }
-    }, 10000), // 1 second delay
-    [title]
-  );
-
-  const generateSuggestions = useCallback(debounce(async (text: string) => {
-    const openDocId = localStorage.getItem("openDocId");
-    const authToken = localStorage.getItem("authToken");
-    if (openDocId && authToken) {
-      try {
-        await axios.post(`${apiUrl}/fix/${openDocId}/suggestions`, {}, {
+        void axios.put(`${apiUrl}/docs/${openDocId}`, {
+          title: title,
+          text: newText
+        }, {
           headers: {
             Authorization: `Bearer ${authToken}`,
           },
+        }).then(() => {
+          if (callback) callback();
+        }).catch((error) => {
+          console.error("Error saving document:", error);
         });
-      } catch (error) {
-        console.error("Error generating suggestions:", error);
       }
-    }
-  }, 1000), []); // Debounce API call by 1 second
+    }, 1000);
+  }, [title, apiUrl]);
 
   const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newText = e.target.value;
     setText(newText);
     updateCounts(newText);
-    debouncedSave(newText, onSave); // Use debounced save instead of immediate save
+    debouncedSave()(newText, onSave);
     onUpdateText(newText);
   };
 
-  // Effect to update counts whenever the text changes
   useEffect(() => {
     updateCounts(text);
   }, [text]);
@@ -84,28 +74,26 @@ const Content = ({ onSave, onUpdateText, text, setText, title }: { onSave: () =>
       const fetchDocument = async () => {
         const authToken = localStorage.getItem("authToken");
         try {
-          const response = await axios.get(`${apiUrl}/docs/${openDocId}`, {
-            headers: {
-              Authorization: `Bearer ${authToken}`,
-            },
-          });
+          const response = await axios.get<DocumentResponse>(
+            `${apiUrl}/docs/${openDocId}`,
+            {
+              headers: {
+                Authorization: `Bearer ${authToken}`,
+              },
+            }
+          );
           if (response.status === 200) {
-            console.log(response.data);
             setText(response.data.text_chunk);
             updateCounts(response.data.text_chunk);
           }
-        } catch (error: any) {
-          if (error.response && error.response.status === 404) {
-            console.error("Document not found or access denied");
-          } else {
-            console.error(error);
-          }
+        } catch (error) {
+          console.error("Error fetching document:", error);
         }
       };
 
-      fetchDocument();
+      void fetchDocument();
     }
-  }, []);
+  }, [setText, apiUrl]);
 
   return (
     <div className="flex  h-full mt-[60px] rounded-lg flex-col bg-slate-50"  style={{ overflowY: "hidden" }}>

@@ -9,7 +9,6 @@ import Menu from '../components/Menu';
 const DocumentPage = () => {
   const router = useRouter();
   const { doc_id } = router.query;
-  const [document, setDocument] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -17,17 +16,16 @@ const DocumentPage = () => {
       const fetchDocument = async () => {
         const authToken = localStorage.getItem('authToken');
         try {
-          const response = await axios.get(`http://127.0.0.1:2000/docs/${doc_id}`, {
+          await axios.get(`http://127.0.0.1:2000/docs/${Array.isArray(doc_id) ? doc_id[0] : doc_id}`, {
             headers: { Authorization: `Bearer ${authToken}` },
           });
-          setDocument(response.data);
           setIsLoading(false);
         } catch (error) {
           console.error('Error fetching document:', error);
           setIsLoading(false);
         }
       };
-      fetchDocument();
+      void fetchDocument(); // Use void to explicitly ignore the promise
     }
   }, [doc_id]);
 

@@ -1,8 +1,7 @@
 import React from "react";
 import axios from "axios";
 import Image from "next/image";
-import { useRouter } from 'next/router';
-import purpleDot from "../../assets/purple-ellipse.svg";
+import type { StaticImageData } from "next/image";
 import trashIcon from "../../assets/trash-icon.svg";
 
 interface Suggestion {
@@ -12,19 +11,29 @@ interface Suggestion {
   rewritten_text: string;
 }
 
+interface UpdateResponse {
+  updated_text: string;
+}
+
 interface SuggestionProps {
   suggestion: Suggestion;
   onSuggestionUpdate: () => void;
-  setText: (text: string) => void; // Add setText prop
+  setText: (text: string) => void;
 }
 
+const defaultSuggestion: Suggestion = {
+  id: 0,
+  document_id: 0,
+  input_text_chunk: "Default input text",
+  rewritten_text: "Default rewritten text",
+};
+
 export default function Suggestion({
-  suggestion,
+  suggestion = defaultSuggestion,
   onSuggestionUpdate,
-  setText, // Destructure setText prop
+  setText,
 }: SuggestionProps) {
   const apiUrl = "http://127.0.0.1:2000";
-  const router = useRouter();
 
   const handleDelete = async () => {
     try {
@@ -44,7 +53,7 @@ export default function Suggestion({
 
   const handleApply = async () => {
     try {
-      const response = await axios.put(
+      const response = await axios.put<UpdateResponse>(
         `${apiUrl}/fix/${suggestion.document_id}/suggestions/${suggestion.id}`,
         {},
         {
@@ -54,10 +63,8 @@ export default function Suggestion({
         },
       );
 
-      console.log(response.data.updated_text);
-
-      setText(response.data.updated_text); // Update the text in the editor
-      // router.reload();
+      const updatedText = response.data.updated_text;
+      setText(updatedText);
     } catch (error) {
       console.error("Failed to apply suggestion:", error);
     }
@@ -76,7 +83,10 @@ export default function Suggestion({
           Apply
         </button>
         <button onClick={handleDelete} className="pr-6">
-          <Image src={trashIcon} alt="trash-icon" />
+          <Image 
+            src={trashIcon as StaticImageData} 
+            alt="trash-icon" 
+          />
         </button>
       </div>
     </div>

@@ -1,5 +1,4 @@
 import Image from "next/image";
-import logo from "../../assets/StarcAI-logo.svg";
 import login from "../../../public/assets/login.png";
 
 export default function LoginAdvertisement() {

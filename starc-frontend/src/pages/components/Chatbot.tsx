@@ -1,6 +1,11 @@
 import React, { useState } from "react";
 import axios from "axios";
 
+// Add interface for API response
+interface ChatResponse {
+  response: string;
+}
+
 const Chatbot = () => {
   const [messages, setMessages] = useState<{ sender: string; text: string }[]>([]);
   const [input, setInput] = useState("Is Deferred revenue is taxable?");
@@ -14,7 +19,7 @@ const Chatbot = () => {
 
       try {
         const authToken = localStorage.getItem("authToken");
-        const response = await axios.post(
+        const response = await axios.post<ChatResponse>(
           "http://127.0.0.1:2000/fix/chat",
           {
             prompt: input,
