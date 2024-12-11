@@ -17,7 +17,7 @@ import DownloadIcon from "../../assets/download.svg"; // Import the download ico
 const Menu = ({ defaultOpen = false }) => {
   const [isOpen, setIsOpen] = useState(defaultOpen);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
-  const [selectedFile, setSelectedFile] = useState(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const router = useRouter();
   const [isNewDocModalOpen, setIsNewDocModalOpen] = useState(false);
   const [newDocTitle, setNewDocTitle] = useState("");
@@ -30,7 +30,9 @@ const Menu = ({ defaultOpen = false }) => {
     if (router.isReady) {
       const pathArray = router.asPath.split('/');
       const potentialDocId = pathArray[pathArray.length - 1];
-      setDocumentId(potentialDocId);
+      if (potentialDocId) {
+        setDocumentId(potentialDocId);
+      }
     }
   }, [router.isReady, router.asPath]);
 
@@ -287,7 +289,7 @@ const Menu = ({ defaultOpen = false }) => {
             </button>
 
             <button
-              onClick={() => documentId ? exportDocumentAsPdf(documentId.toString()) : console.warn('Document ID is undefined')}
+              onClick={() => documentId ? exportDocumentAsPdf() : console.warn('Document ID is undefined')}
               className="flex items-center space-x-2 rounded-md bg-white px-4 py-2 text-gray-800 transition-colors duration-200 hover:bg-gray-300"
             >
               <Image src={DownloadIcon} alt="Download" width={24} height={24} /> {/* Add the download icon */}

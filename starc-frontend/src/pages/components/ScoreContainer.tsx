@@ -8,7 +8,11 @@ import score_confidence from '../../assets/score_confidence.svg';
 import score_strategicforecast from '../../assets/score_strategicforecast.svg';
 import infoIcon from '../../assets/info.svg';
 
-const ScoreContainer = forwardRef(({ text }: { text?: string }, ref) => {
+type ScoreContainerRef = {
+  fetchScores: () => void;
+};
+
+const ScoreContainer = forwardRef<ScoreContainerRef, { text?: string }>((props, ref) => {
   // State to hold the individual scores
   const [scores, setScores] = useState({ "Strategic Forecast": 0, "Optimism": 0, "Confidence": 0 });
   const [overallScore, setOverallScore] = useState(0); // State to hold the overall score
@@ -108,7 +112,7 @@ const ScoreContainer = forwardRef(({ text }: { text?: string }, ref) => {
         clearTimeout(debounceTimer.current);
       }
     };
-  }, [router.isReady, router.asPath, text, debouncedFetchScores]);
+  }, [router.isReady, router.asPath, debouncedFetchScores]);
 
   // Function to dynamically get the score icon
   const getScoreIcon = (key: string) => {
@@ -123,6 +127,10 @@ const ScoreContainer = forwardRef(({ text }: { text?: string }, ref) => {
         return null; // Default case if none match
     }
   };
+
+  useImperativeHandle(ref, () => ({
+    fetchScores
+  }));
 
   return (
     <div className="flex flex-col items-center p-4 relative" onClick={showPopup ? closePopup : undefined}>

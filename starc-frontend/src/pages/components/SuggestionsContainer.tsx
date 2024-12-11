@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, forwardRef } from "react";
 import axios from "axios";
 
 interface SuggestionsContainerProps {
@@ -7,7 +7,7 @@ interface SuggestionsContainerProps {
   setText: (text: string) => void;
 }
 
-const SuggestionsContainer: React.FC<SuggestionsContainerProps> = ({ documentId, onUpdateText, setText }) => {
+const SuggestionsContainer = forwardRef((props: SuggestionsContainerProps, ref) => {
   const [prompts, setPrompts] = useState([
     { id: 1, prompt: "Induce confidence in this" }
   ]);
@@ -19,11 +19,11 @@ const SuggestionsContainer: React.FC<SuggestionsContainerProps> = ({ documentId,
   };
 
   const handleRewrite = async (id: number, currentPrompt: string) => {
-    if (documentId && currentPrompt) {
+    if (props.documentId && currentPrompt) {
       const authToken = localStorage.getItem("authToken");
       try {
         const response = await axios.post(
-          `http://127.0.0.1:2000/fix/${documentId}/rewrite`,
+          `http://127.0.0.1:2000/fix/${props.documentId}/rewrite`,
           { prompt: currentPrompt },
           {
             headers: {
@@ -33,11 +33,11 @@ const SuggestionsContainer: React.FC<SuggestionsContainerProps> = ({ documentId,
         );
         if (response.status === 200) {
           const rewrittenText = response.data.rewritten_text;
-          setText(rewrittenText);
+          props.setText(rewrittenText);
 
           // Save the rewritten text to the database
           await axios.post(
-            `http://127.0.0.1:2000/docs/${documentId}/save_rewrite`,
+            `http://127.0.0.1:2000/docs/${props.documentId}/save_rewrite`,
             { rewritten_text: rewrittenText },
             {
               headers: {
@@ -102,6 +102,6 @@ const SuggestionsContainer: React.FC<SuggestionsContainerProps> = ({ documentId,
       </div> */}
     </div>
   );
-};
+});
 
 export default SuggestionsContainer;

@@ -6,7 +6,7 @@ import Chatbot from "./Chatbot";
 import axios from "axios";
 
 export default function HomeBody() {
-  const scoreContainerRef = useRef(null);
+  const scoreContainerRef = useRef<{ fetchScores: () => void } | null>(null);
   const [documentId, setDocumentId] = useState<number | null>(null);
   const suggestionsContainerRef = useRef<{ fetchSuggestions: () => void } | null>(null);
   const [text, setText] = useState(""); // Lifted state

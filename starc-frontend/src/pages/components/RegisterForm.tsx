@@ -139,8 +139,8 @@ export default function RegisterForm() {
     }
   };
 
-  const handleGoogleFailure = (error: any) => {
-    console.error("Google sign-up error:", error);
+  const handleGoogleFailure = () => {
+    console.error("Google sign-up error");
     setRegisterError("Google sign-up failed");
   };
 
