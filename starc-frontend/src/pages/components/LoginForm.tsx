@@ -10,6 +10,7 @@ interface AuthResponse {
 }
 
 export default function LoginForm() {
+  const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://127.0.0.1:2000';
   const [loginIdentifier, setLoginIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [loginError, setLoginError] = useState("");
@@ -29,7 +30,7 @@ export default function LoginForm() {
     event.preventDefault();
     if (isFormValid()) {
       try {
-        const response = await axios.post<AuthResponse>("http://127.0.0.1:2000/auth/login", {
+        const response = await axios.post<AuthResponse>(`${API_URL}/auth/login`, {
           login_identifier: loginIdentifier,
           password,
         });
@@ -54,7 +55,7 @@ export default function LoginForm() {
         throw new Error('No credential received');
       }
 
-      const res = await axios.post<AuthResponse>("http://127.0.0.1:2000/auth/google", {
+      const res = await axios.post<AuthResponse>(`${API_URL}/auth/google`, {
         token: response.credential,
       });
 

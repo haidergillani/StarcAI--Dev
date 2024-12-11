@@ -13,6 +13,7 @@ interface RewriteResponse {
 
 const SuggestionsContainer = forwardRef<HTMLDivElement, SuggestionsContainerProps>(
   ({ documentId, setText }, _ref) => {
+    const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://127.0.0.1:2000';
     const [prompts, setPrompts] = useState([
       { id: 1, prompt: "Induce confidence in this" }
     ]);
@@ -28,7 +29,7 @@ const SuggestionsContainer = forwardRef<HTMLDivElement, SuggestionsContainerProp
         const authToken = localStorage.getItem("authToken");
         try {
           const response = await axios.post<RewriteResponse>(
-            `http://127.0.0.1:2000/fix/${documentId}/rewrite`,
+            `${API_URL}/fix/${documentId}/rewrite`,
             { prompt: currentPrompt },
             {
               headers: {
@@ -41,7 +42,7 @@ const SuggestionsContainer = forwardRef<HTMLDivElement, SuggestionsContainerProp
             setText(rewrittenText);
 
             await axios.post(
-              `http://127.0.0.1:2000/docs/${documentId}/save_rewrite`,
+              `${API_URL}/docs/${documentId}/save_rewrite`,
               { rewritten_text: rewrittenText },
               {
                 headers: {

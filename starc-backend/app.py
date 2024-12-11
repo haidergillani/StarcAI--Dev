@@ -1,4 +1,4 @@
-# Load environment variables from .env file
+import os
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -9,8 +9,17 @@ from api_project import create_app
 app = create_app()
 
 # main guard
-# port and host changed for deployment purposes
 if __name__ == "__main__":
     import uvicorn
-
-    uvicorn.run(app, host='0.0.0.0', port=2000)
+    
+    # Get port from Heroku environment, or use default
+    port = int(os.environ.get("PORT", 2000))
+    
+    uvicorn.run(
+        app, 
+        host='0.0.0.0', 
+        port=port,
+        # Optional: add these for better logging and reload behavior
+        log_level="info",
+        reload=False  # Set to True for development, False for production
+    )

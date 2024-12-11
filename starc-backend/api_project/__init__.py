@@ -26,10 +26,16 @@ def create_app():
 
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["http://localhost:3000"],
+        allow_origins=[
+            "https://starc-frontend-app-4c30515c51d7.herokuapp.com",
+            "http://localhost:3000",
+            "*"  # During development - remove in production
+        ],
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
+        expose_headers=["*"],
+        max_age=600,
     )
 
     app.include_router(auth_router, prefix='/auth')

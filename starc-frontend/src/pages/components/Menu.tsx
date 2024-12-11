@@ -20,6 +20,7 @@ interface MenuProps {
 }
 
 const Menu: React.FC<MenuProps> = ({ defaultOpen = false }) => {
+  const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://127.0.0.1:2000';
   const [isOpen, setIsOpen] = useState(defaultOpen);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -67,7 +68,7 @@ const Menu: React.FC<MenuProps> = ({ defaultOpen = false }) => {
     const authToken = localStorage.getItem("authToken");
     try {
       const response = await axios.post<{ id: string }>(
-        "http://127.0.0.1:2000/docs",
+        `${API_URL}/docs`,
         {
           title: newDocTitle,
           text: newDocText,
@@ -107,7 +108,7 @@ const Menu: React.FC<MenuProps> = ({ defaultOpen = false }) => {
 
     try {
       const response = await axios.get(
-        `http://127.0.0.1:2000/docs/pdf/${documentId}`,
+        `${API_URL}/docs/pdf/${documentId}`,
         {
           headers: {
             Authorization: `Bearer ${authToken}`,
@@ -160,7 +161,7 @@ const Menu: React.FC<MenuProps> = ({ defaultOpen = false }) => {
 
     try {
       const response = await axios.post(
-        "http://127.0.0.1:2000/docs/pdf",
+        `${API_URL}/docs/pdf`,
         formData,
         {
           headers: {

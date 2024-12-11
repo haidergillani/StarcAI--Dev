@@ -25,7 +25,7 @@ interface RefreshResponse {
 }
 
 export default function DocsContainer() {
-  const apiUrl = 'http://127.0.0.1:2000/api';
+  const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://127.0.0.1:2000';
 
   const [documents, setDocuments] = useState<Document[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -39,7 +39,7 @@ export default function DocsContainer() {
         return;
       }
 
-      await axios.delete(`http://127.0.0.1:2000/docs/${docId}`, {
+      await axios.delete(`${API_URL}/docs/${docId}`, {
         headers: { Authorization: `Bearer ${authToken}` },
       });
       setDocuments(prev => prev.filter(document => document.id !== docId));
@@ -80,7 +80,7 @@ export default function DocsContainer() {
     }
 
     try {
-      const response = await axios.get<SearchResponse>(`${apiUrl}/search`, {
+      const response = await axios.get<SearchResponse>(`${API_URL}/search`, {
         params: { q: query, page, limit },
         headers: { Authorization: `Bearer ${authToken}` },
       });
@@ -90,7 +90,7 @@ export default function DocsContainer() {
       if (axiosError.response?.status === 401) {
         try {
           const refreshResponse = await axios.post<RefreshResponse>(
-            "http://127.0.0.1:2000/auth/refresh",
+            `${API_URL}/auth/refresh`,
             {},
             { headers: { Authorization: `Bearer ${authToken}` } }
           );
@@ -104,7 +104,7 @@ export default function DocsContainer() {
         setError("Failed to fetch documents");
       }
     }
-  }, [handleSearchComplete, apiUrl]);
+  }, [handleSearchComplete, API_URL]);
 
   useEffect(() => {
     console.log("Initial fetch");

@@ -30,6 +30,7 @@ interface Scores {
 }
 
 const ScoreContainer = forwardRef<ScoreContainerRef, ScoreContainerProps>((props, ref) => {
+  const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://127.0.0.1:2000';
   const [scores, setScores] = useState<Scores>({ "Strategic Forecast": 0, "Optimism": 0, "Confidence": 0 });
   const [overallScore, setOverallScore] = useState(0);
   const [showPopup, setShowPopup] = useState(false);
@@ -45,7 +46,7 @@ const ScoreContainer = forwardRef<ScoreContainerRef, ScoreContainerProps>((props
     const authToken = localStorage.getItem("authToken");
 
     if (docId) {
-      axios.get<ScoreResponse>(`http://127.0.0.1:2000/docs/scores/${docId}`, {
+      axios.get<ScoreResponse>(`${API_URL}/docs/scores/${docId}`, {
         headers: authToken ? { 'Authorization': `Bearer ${authToken}` } : {}
       })
       .then(response => {
@@ -63,7 +64,7 @@ const ScoreContainer = forwardRef<ScoreContainerRef, ScoreContainerProps>((props
     } else {
       console.error('Document ID not found in URL');
     }
-  }, [router.asPath]);
+  }, [router.asPath, API_URL]);
 
   const getScoreIcon = (key: keyof Scores): StaticImageData => {
     switch (key) {

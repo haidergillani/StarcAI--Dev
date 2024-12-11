@@ -6,6 +6,9 @@ import axios from 'axios';
 jest.mock('axios');
 const mockedAxios = axios as jest.Mocked<typeof axios>;
 
+// Mock the environment variable
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://127.0.0.1:2000';
+
 describe('SearchBar Component', () => {
   const mockOnSearchComplete = jest.fn();
 
@@ -35,7 +38,7 @@ describe('SearchBar Component', () => {
     fireEvent.click(searchButton);
 
     expect(mockedAxios.get).toHaveBeenCalledTimes(1);
-    expect(mockedAxios.get).toHaveBeenCalledWith("http://127.0.0.1:2000/api/search", {
+    expect(mockedAxios.get).toHaveBeenCalledWith(`${API_URL}/api/search`, {
       params: {
         q: 'test query',
       },

@@ -15,6 +15,7 @@ interface AuthResponse {
 }
 
 export default function RegisterForm() {
+  const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://127.0.0.1:2000';
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -102,7 +103,7 @@ export default function RegisterForm() {
     if (isFormValid()) {
       try {
         const response = await axios.post(
-          "http://127.0.0.1:2000/auth/register",
+          `${API_URL}/auth/register`,
           {
             username,
             email,
@@ -130,7 +131,7 @@ export default function RegisterForm() {
         throw new Error('No credential received');
       }
       
-      const res = await axios.post<AuthResponse>("http://127.0.0.1:2000/auth/google", {
+      const res = await axios.post<AuthResponse>(`${API_URL}/auth/google`, {
         credential: response.credential,
       });
 
