@@ -51,11 +51,11 @@ const ScoreContainer = forwardRef<ScoreContainerRef, ScoreContainerProps>((props
 
     if (docId) {
       axios.get<ScoreResponse[]>(`${API_URL}/docs/scores/${docId}`, {
-        headers: authToken ? { 'Authorization': `Bearer ${authToken}` } : {}
+        headers: { 'Authorization': `Bearer ${authToken ?? ''}` }
       })
       .then(response => {
         console.log('Received scores:', response.data);
-        if (response.data && response.data[0]) {
+        if (response.data?.[0]) {
           const scoreData = response.data[0];
           setScores({
             "Strategic Forecast": scoreData.forecast,
