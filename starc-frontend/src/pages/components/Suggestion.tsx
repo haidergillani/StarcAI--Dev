@@ -33,12 +33,12 @@ export default function Suggestion({
   onSuggestionUpdate,
   setText,
 }: SuggestionProps) {
-  const apiUrl = "http://127.0.0.1:2000";
+  const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://127.0.0.1:2000';
 
   const handleDelete = async () => {
     try {
       await axios.delete(
-        `${apiUrl}/fix/${suggestion.document_id}/suggestions/${suggestion.id}`,
+        `${API_URL}/fix/${suggestion.document_id}/suggestions/${suggestion.id}`,
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("authToken")}`,
@@ -54,7 +54,7 @@ export default function Suggestion({
   const handleApply = async () => {
     try {
       const response = await axios.put<UpdateResponse>(
-        `${apiUrl}/fix/${suggestion.document_id}/suggestions/${suggestion.id}`,
+        `${API_URL}/fix/${suggestion.document_id}/suggestions/${suggestion.id}`,
         {},
         {
           headers: {

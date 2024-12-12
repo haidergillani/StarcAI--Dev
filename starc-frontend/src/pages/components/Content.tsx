@@ -21,7 +21,7 @@ const Content = ({ onSave, onUpdateText, text, setText, title }: ContentProps) =
   const [countType, setCountType] = useState("word");
   const [dropdownVisible, setDropdownVisible] = useState(false);
 
-  const apiUrl = 'http://127.0.0.1:2000';
+  const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://127.0.0.1:2000';
 
   const updateCounts = (text: string) => {
     if (text) {
@@ -40,7 +40,7 @@ const Content = ({ onSave, onUpdateText, text, setText, title }: ContentProps) =
       const openDocId = localStorage.getItem("openDocId");
       const authToken = localStorage.getItem("authToken");
       if (openDocId && authToken) {
-        void axios.put(`${apiUrl}/docs/${openDocId}`, {
+        void axios.put(`${API_URL}/docs/${openDocId}`, {
           title: title,
           text: newText
         }, {
@@ -54,7 +54,7 @@ const Content = ({ onSave, onUpdateText, text, setText, title }: ContentProps) =
         });
       }
     }, 1000);
-  }, [title, apiUrl]);
+  }, [title, API_URL]);
 
   const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newText = e.target.value;
@@ -75,7 +75,7 @@ const Content = ({ onSave, onUpdateText, text, setText, title }: ContentProps) =
         const authToken = localStorage.getItem("authToken");
         try {
           const response = await axios.get<DocumentResponse>(
-            `${apiUrl}/docs/${openDocId}`,
+            `${API_URL}/docs/${openDocId}`,
             {
               headers: {
                 Authorization: `Bearer ${authToken}`,
@@ -93,7 +93,7 @@ const Content = ({ onSave, onUpdateText, text, setText, title }: ContentProps) =
 
       void fetchDocument();
     }
-  }, [setText, apiUrl]);
+  }, [setText, API_URL]);
 
   return (
     <div className="flex  h-full mt-[60px] rounded-lg flex-col bg-slate-50"  style={{ overflowY: "hidden" }}>

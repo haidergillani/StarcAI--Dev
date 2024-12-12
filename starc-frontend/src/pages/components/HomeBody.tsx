@@ -23,7 +23,7 @@ export default function HomeBody() {
   const suggestionsContainerRef = useRef<{ fetchSuggestions: () => void } | null>(null);
   const [text, setText] = useState(""); // Lifted state
   const [title, setTitle] = useState(""); // Lifted state
-  const apiUrl = 'http://127.0.0.1:2000';
+  const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://127.0.0.1:2000';
 
   const handleSave = () => {
     if (scoreContainerRef.current) {
@@ -60,7 +60,7 @@ export default function HomeBody() {
         const authToken = localStorage.getItem("authToken");
         try {
           const response = await axios.get<DocumentResponse>(
-            `${apiUrl}/docs/${openDocId}`,
+            `${API_URL}/docs/${openDocId}`,
             {
               headers: {
                 Authorization: `Bearer ${authToken}`,
@@ -83,7 +83,7 @@ export default function HomeBody() {
       };
       void fetchDocument();
     }
-  }, []);
+  }, [API_URL]);
 
   return (
     <div className="flex w-screen h-screen overflow-x-hidden"> {/* Added overflow-x-hidden */}
