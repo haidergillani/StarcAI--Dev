@@ -130,12 +130,9 @@ def update_document(doc_id: int, document: DocumentCreate, Authorize: AuthJWT = 
 
     if document.title:
         existing_document.title = document.title
-        
-    print(f"Document text: {document.text}")
 
     if document.text:
         existing_text_chunk = db.query(TextChunks).filter_by(document_id=existing_document.id).first()
-        print(f"Existing text chunk: {existing_text_chunk}")
         if existing_text_chunk:
             existing_text_chunk.input_text_chunk = document.text
             rewritten_text = get_rewrite(document.text)
@@ -182,10 +179,6 @@ def get_final_scores(doc_id: int, Authorize: AuthJWT = Depends(), db: Session = 
     if not final_scores:
         raise HTTPException(status_code=404, detail="No final scores found for the given document")
 
-    # Print final scores for testing
-    for score in final_scores:
-        print(f"Final Score ID: {score.id}, Confidence: {score.confidence}, Optimistic: {score.optimism}")
-
     return final_scores
 
 @documents_router.get("/{doc_id}", response_model=dict)
@@ -207,8 +200,6 @@ def get_document_details(doc_id: int, Authorize: AuthJWT = Depends(), db: Sessio
         "word_count": document.word_count,
         "text_chunk": text_chunk.input_text_chunk,
     }
-
-    print(document_details)
 
     return document_details
     

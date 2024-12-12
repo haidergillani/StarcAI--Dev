@@ -31,9 +31,14 @@ export default function HomeBody() {
     }
   };
 
-  const handleUpdateText = (_newText: string) => {
+  const handleUpdateText = (newText: string) => {
+    setText(newText);  // Update the text state
     if (suggestionsContainerRef.current) {
       suggestionsContainerRef.current.fetchSuggestions();
+    }
+    // Also update scores when text changes significantly
+    if (scoreContainerRef.current && Math.abs(text.length - newText.length) > 50) {
+      scoreContainerRef.current.fetchScores();
     }
   };
 
@@ -41,6 +46,10 @@ export default function HomeBody() {
     const openDocId = localStorage.getItem("openDocId");
     if (openDocId) {
       setDocumentId(parseInt(openDocId, 10));
+      // Fetch scores when document ID changes
+      if (scoreContainerRef.current) {
+        scoreContainerRef.current.fetchScores();
+      }
     }
   }, []);
 

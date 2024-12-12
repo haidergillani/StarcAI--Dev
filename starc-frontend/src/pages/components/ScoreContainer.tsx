@@ -1,4 +1,4 @@
-import React, { useState, useImperativeHandle, forwardRef, useCallback } from 'react';
+import React, { useState, useImperativeHandle, forwardRef, useCallback, useEffect } from 'react';
 import axios from 'axios';
 import Image from 'next/image';
 import type { StaticImageData } from 'next/image';
@@ -17,10 +17,12 @@ interface ScoreContainerProps {
 }
 
 interface ScoreResponse {
-  optimism: number;
-  confidence: number;
-  forecast: number;
+  id: number;
+  text_chunk_id: number;
   score: number;
+  optimism: number;
+  forecast: number;
+  confidence: number;
 }
 
 interface Scores {
@@ -45,26 +47,41 @@ const ScoreContainer = forwardRef<ScoreContainerRef, ScoreContainerProps>((props
     const docId = pathArray[pathArray.length - 1];
     const authToken = localStorage.getItem("authToken");
 
+    console.log('Fetching scores for document:', docId);
+
     if (docId) {
-      axios.get<ScoreResponse>(`${API_URL}/docs/scores/${docId}`, {
+      axios.get<ScoreResponse[]>(`${API_URL}/docs/scores/${docId}`, {
         headers: authToken ? { 'Authorization': `Bearer ${authToken}` } : {}
       })
       .then(response => {
-        const scoreData = response.data;
-        setScores({
-          "Optimism": Math.round(scoreData.optimism * 1) / 1,
-          "Confidence": Math.round(scoreData.confidence * 1) / 1,
-          "Strategic Forecast": Math.round(scoreData.forecast * 1) / 1
-        });
-        setOverallScore(Math.round(scoreData.score * 1) / 1);
+        console.log('Received scores:', response.data);
+        if (response.data && response.data[0]) {
+          const scoreData = response.data[0];
+          setScores({
+            "Strategic Forecast": scoreData.forecast,
+            "Optimism": scoreData.optimism,
+            "Confidence": scoreData.confidence
+          });
+          setOverallScore(scoreData.score);
+        }
       })
       .catch(error => {
         console.error('There was an error fetching the scores!', error);
       });
-    } else {
-      console.error('Document ID not found in URL');
     }
   }, [router.asPath, API_URL]);
+
+  // Fetch scores when component mounts or document ID changes
+  useEffect(() => {
+    fetchScores();
+  }, [fetchScores]);
+
+  // Add dependency on props.text to refetch when content changes
+  useEffect(() => {
+    if (props.text) {
+      fetchScores();
+    }
+  }, [props.text, fetchScores]);
 
   const getScoreIcon = (key: keyof Scores): StaticImageData => {
     switch (key) {
