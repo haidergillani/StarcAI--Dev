@@ -11,7 +11,7 @@ Text Chunk allows flexibility incase subsections of a text need to be rewritten
 """
 
 from datetime import datetime
-from sqlalchemy import Column, Integer, String, Text, Float, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, String, Text, Float, DateTime, ForeignKey, Boolean
 from sqlalchemy.orm import relationship
 from .database import Base
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -24,6 +24,7 @@ class User(Base):
     username = Column(String, nullable=False)
     password = Column(String, nullable=False)
     email = Column(String, nullable=False)
+    is_oauth_user = Column(Boolean, default=False)
     documents = relationship('Document', backref='user', lazy=True, cascade="all, delete-orphan")
 
     # Set and check for password using Werkzeug functions.
@@ -31,6 +32,8 @@ class User(Base):
         self.password = generate_password_hash(password)
 
     def check_password(self, password):
+        if self.is_oauth_user:
+            return False
         return check_password_hash(self.password, password)
 
 # Store basic document details.
@@ -87,5 +90,3 @@ class Suggestion(Base):
     document = relationship("Document", back_populates="suggestions")
 
 Document.suggestions = relationship("Suggestion", order_by=Suggestion.id, back_populates="document")
-
-

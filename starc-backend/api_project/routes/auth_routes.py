@@ -3,11 +3,12 @@ from sqlalchemy.orm import Session
 from fastapi_jwt_auth import AuthJWT
 from authlib.integrations.starlette_client import OAuth
 from starlette.config import Config
-from starlette.responses import RedirectResponse
 from api_project.models import User
 from api_project.database import get_db
 from api_project.schemas import UserCreate, UserLogin, TokenResponse
 import os
+from google.oauth2 import id_token
+from google.auth.transport import requests
 
 auth_router = APIRouter()
 
@@ -15,33 +16,55 @@ auth_router = APIRouter()
 config = Config(".env")
 oauth = OAuth(config)
 
-oauth.register(
-    name='google',
-    client_id=os.getenv('GOOGLE_CLIENT_ID'),
-    client_secret=os.getenv('GOOGLE_CLIENT_SECRET'),
-    authorize_url='https://accounts.google.com/o/oauth2/auth',
-    authorize_params=None,
-    access_token_url='https://accounts.google.com/o/oauth2/token',
-    access_token_params=None,
-    refresh_token_url=None,
-    redirect_uri=os.getenv('GOOGLE_REDIRECT_URI'),
-    client_kwargs={'scope': 'openid profile email'},
-)
-
 @auth_router.post('/google', response_model=TokenResponse)
 async def google_login(request: Request, db: Session = Depends(get_db), Authorize: AuthJWT = Depends()):
-    token = request.json().get('token')
-    user_info = await oauth.google.parse_id_token(request, token)
-    user_email = user_info['email']
+    try:
+        # Get the request body
+        try:
+            body = await request.json()
+        except Exception as e:
+            raise HTTPException(status_code=400, detail="Invalid request body")
 
-    user = db.query(User).filter_by(email=user_email).first()
-    if not user:
-        user = User(username=user_info['name'], email=user_email)
-        db.add(user)
-        db.commit()
+        # Get token from either 'token' or 'credential' field
+        token = body.get('token') or body.get('credential')
+        if not token:
+            raise HTTPException(status_code=400, detail="Token is required")
 
-    access_token = Authorize.create_access_token(subject=user.id)
-    return {"access_token": access_token}
+        try:
+            # Verify the token with Google
+            idinfo = id_token.verify_oauth2_token(
+                token,
+                requests.Request(),
+                os.getenv('GOOGLE_CLIENT_ID')
+            )
+            
+            # Get user email and name from the verified token
+            user_email = idinfo['email']
+            user_name = idinfo.get('name', user_email.split('@')[0])
+
+            # Find or create user
+            user = db.query(User).filter_by(email=user_email).first()
+            if not user:
+                user = User(
+                    username=user_name, 
+                    email=user_email,
+                    password="OAUTH_USER",
+                    is_oauth_user=True
+                )
+                db.add(user)
+                db.commit()
+
+            # Create access token
+            access_token = Authorize.create_access_token(subject=user.id)
+            return {"access_token": access_token}
+            
+        except ValueError as e:
+            raise HTTPException(status_code=401, detail=f"Invalid token: {str(e)}")
+            
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 # Register unique user using name, email, and password.
 @auth_router.post('/register', response_model=dict)
@@ -61,7 +84,11 @@ def register(user: UserCreate, db: Session = Depends(get_db)):
 # Login using either email or password, which checks your password to return an auth token.
 @auth_router.post('/login', response_model=TokenResponse)
 def login(user: UserLogin, Authorize: AuthJWT = Depends(), db: Session = Depends(get_db)):
-    db_user = db.query(User).filter((User.username == user.login_identifier) | (User.email == user.login_identifier)).first()
+    db_user = db.query(User).filter(
+        (User.username == user.login_identifier) | 
+        (User.email == user.login_identifier)
+    ).first()
+    
     if not db_user or not db_user.check_password(user.password):
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
