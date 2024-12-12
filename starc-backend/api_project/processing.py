@@ -14,21 +14,25 @@ gc_virtual_api_key = os.environ.get("GC_API_KEY")
 
 def rewrite_text_with_prompt(original_text: str, prompt: str):
     '''
-    Rewrite the given text based on the provided prompt.
+    Acts as a member of investor relations team to rewrite the given text based on the provided prompt.
     '''
-    response = client.chat.completions.create(
-        model="gpt-3.5-turbo",
-        max_tokens=500,
-        temperature=0.7,
-        messages=[
-            {"role": "system", "content": "You are a helpful assistant."},
-            {"role": "user", "content": f"Rewrite the following text to {prompt}: {original_text}"}
-        ]
+    # Define the context for the rewriting task
+    system_message = 'You work for investor relations to team of any company. You are an assistant for rewriting financial communication texts into more perusasive tones or as deisred by user prompts, keeping in mind the audience of investors, stakeholders, and other relevant personnel. Make sure to not change key information and be aware of context. Very important: keep the number of sentences same and the order of sentences consistent. Ignore words like rewrite etc and focus on the actual sentence content'
+
+    # Create the chat messages
+    messages = [
+        {"role": "system", "content": system_message},
+        {"role": "user", "content": f"Rewrite the following text to {prompt}: {original_text}"}
+    ]
+
+    # Generate the completion using the OpenAI API
+    chat_completion = client.chat.completions.create(
+        messages=messages,
+        model="gpt-3.5-turbo"
     )
-    
-    # Extract the content field from the response
-    rewritten_text = response.choices[0].message.content.strip()
-    
+
+        # Extract the rewritten text
+    rewritten_text = chat_completion.choices[0].message.content
     return rewritten_text
 
 def generate_sentence_suggestions(text):
@@ -49,7 +53,7 @@ def generate_sentence_suggestions(text):
              by the oceanfront.'}, {'original': 'He is a good boy.', 'suggested': 'He is a well-behaved child.'}] , \n\n
              json array  should be like this with suggessions as key we will parse the array through this key
              , One more thing please make sure that original text key should be same as the input text because we will
-             replace the original text with the suggested text in the input text so we are dependednt on the correct value of original key."""},
+             replace the original text with the suggested text in the input text so we are dependent on the correct value of original key."""},
             {"role": "user", "content": text}
         ]
     )
@@ -92,7 +96,7 @@ def get_scores(text):
 
 def get_rewriteGPT(original_text):
     '''
-    Do NOT use this anywhere in code.
+    Do NOT use this anywhere in code. Deprecated functionality that used to make a call to Google Cloud
     '''
     url_GPT = f'https://us-central1-starcai.cloudfunctions.net/entry_pointGPT?apikey={gc_virtual_api_key}'
     response = requests.post(url_GPT, json={'text': original_text})
