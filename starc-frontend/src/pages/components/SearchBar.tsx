@@ -9,18 +9,20 @@ interface SearchBarProps {
 
 const SearchBar: React.FC<SearchBarProps> = ({ onSearchComplete }) => {
   const [query, setQuery] = useState("");
+  const hasInitialSearch = useRef(false);
+  
+  useEffect(() => {
+    if (!hasInitialSearch.current) {
+      onSearchComplete("");
+      hasInitialSearch.current = true;
+    }
+  }, [onSearchComplete]);
   
   const debouncedSearchRef = useRef(
     debounce((value: string) => {
       onSearchComplete(value);
     }, 500)
   );
-
-  useEffect(() => {
-    debouncedSearchRef.current = debounce((value: string) => {
-      onSearchComplete(value);
-    }, 500);
-  }, [onSearchComplete]);
 
   useEffect(() => {
     return () => {
@@ -31,16 +33,12 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearchComplete }) => {
   const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = event.target.value;
     setQuery(newValue);
+    
     debouncedSearchRef.current(newValue);
   };
 
-  const handleSearch = (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    onSearchComplete(query);
-  };
-
   return (
-    <form onSubmit={handleSearch} className="flex w-full space-x-16">
+    <div className="flex w-full space-x-16">
       <div className="flex flex-grow space-x-12 rounded bg-background pb-12 pl-24 pr-24 pt-12">
         <Image 
           src={searchIcon as string} 
@@ -57,12 +55,12 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearchComplete }) => {
         />
       </div>
       <button
-        type="submit"
+        onClick={() => debouncedSearchRef.current(query)}
         className="rounded bg-primary-purple pb-12 pl-24 pr-24 pt-12 text-sm_3 font-semibold text-white"
       >
         Search
       </button>
-    </form>
+    </div>
   );
 };
 

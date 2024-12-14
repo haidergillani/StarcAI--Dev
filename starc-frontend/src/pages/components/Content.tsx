@@ -1,6 +1,4 @@
-import axios from "axios";
 import React, { useState, useEffect, useCallback } from "react";
-import { debounce } from "../../utills/debounce";
 
 interface ContentProps {
   onSave: () => void;
@@ -10,18 +8,11 @@ interface ContentProps {
   title: string;
 }
 
-interface DocumentResponse {
-  text_chunk: string;
-  title: string;
-}
-
 const Content = ({ onSave, onUpdateText, text, setText, title }: ContentProps) => {
   const [wordCount, setWordCount] = useState(0);
   const [charCount, setCharCount] = useState(0);
   const [countType, setCountType] = useState("word");
   const [dropdownVisible, setDropdownVisible] = useState(false);
-
-  const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://127.0.0.1:2000';
 
   const updateCounts = (text: string) => {
     if (text) {
@@ -35,32 +26,10 @@ const Content = ({ onSave, onUpdateText, text, setText, title }: ContentProps) =
     }
   };
 
-  const debouncedSave = useCallback(() => {
-    return debounce((newText: string, callback?: () => void) => {
-      const openDocId = localStorage.getItem("openDocId");
-      const authToken = localStorage.getItem("authToken");
-      if (openDocId && authToken) {
-        void axios.put(`${API_URL}/docs/${openDocId}`, {
-          title: title,
-          text: newText
-        }, {
-          headers: {
-            Authorization: `Bearer ${authToken}`,
-          },
-        }).then(() => {
-          if (callback) callback();
-        }).catch((error) => {
-          console.error("Error saving document:", error);
-        });
-      }
-    }, 1000);
-  }, [title, API_URL]);
-
   const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newText = e.target.value;
     setText(newText);
     updateCounts(newText);
-    debouncedSave()(newText, onSave);
     onUpdateText(newText);
   };
 
@@ -68,47 +37,19 @@ const Content = ({ onSave, onUpdateText, text, setText, title }: ContentProps) =
     updateCounts(text);
   }, [text]);
 
-  useEffect(() => {
-    const openDocId = localStorage.getItem("openDocId");
-    if (openDocId) {
-      const fetchDocument = async () => {
-        const authToken = localStorage.getItem("authToken");
-        try {
-          const response = await axios.get<DocumentResponse>(
-            `${API_URL}/docs/${openDocId}`,
-            {
-              headers: {
-                Authorization: `Bearer ${authToken}`,
-              },
-            }
-          );
-          if (response.status === 200) {
-            setText(response.data.text_chunk);
-            updateCounts(response.data.text_chunk);
-          }
-        } catch (error) {
-          console.error("Error fetching document:", error);
-        }
-      };
-
-      void fetchDocument();
-    }
-  }, [setText, API_URL]);
-
   return (
-    <div className="flex  h-full mt-[60px] rounded-lg flex-col bg-slate-50"  style={{ overflowY: "hidden" }}>
+    <div className="flex h-full mt-[60px] rounded-lg flex-col bg-slate-50" style={{ overflowY: "hidden" }}>
       <textarea
         value={text}
         onChange={handleTextChange}
-        className="flex-1 ml-[30px] bg-slate-50 mt-[10px]  resize-none overflow-auto border-none py-2  pr-6 outline-none transition-all sm:text-sm md:text-base lg:text-lg"
+        className="flex-1 ml-[30px] bg-slate-50 mt-[10px] resize-none overflow-auto border-none py-2 pr-6 outline-none transition-all sm:text-sm md:text-base lg:text-lg"
         placeholder="Type or paste your text here..."
         autoFocus
       />
-      <div className="flex items-center justify-between p-4"> {/* Removed border-t class */}
+      <div className="flex items-center justify-between p-4">
         <div className="ml-auto">
-          {/* Toggle between word count and character count */}
           <div
-            className="relative cursor-pointer rounded-lg  p-2 text-gray-500 hover:bg-gray-200"
+            className="relative cursor-pointer rounded-lg p-2 text-gray-500 hover:bg-gray-200"
             onClick={() => setDropdownVisible(!dropdownVisible)}
           >
             {countType === "word"

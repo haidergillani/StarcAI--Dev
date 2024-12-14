@@ -1,8 +1,9 @@
-import React, { useState, useImperativeHandle, forwardRef, useCallback, useEffect } from 'react';
+import React, { useState, useImperativeHandle, forwardRef, useCallback } from 'react';
 import axios from 'axios';
 import Image from 'next/image';
 import type { StaticImageData } from 'next/image';
 import { useRouter } from 'next/router';
+import { debounce } from 'lodash';
 // Score icons
 import score_optimism from '../../assets/score_optimism.svg';
 import score_confidence from '../../assets/score_confidence.svg';
@@ -13,7 +14,13 @@ interface ScoreContainerRef {
 }
 
 interface ScoreContainerProps {
-  text?: string;
+  text: string;
+  initialScores?: {
+    score: number;
+    optimism: number;
+    forecast: number;
+    confidence: number;
+  } | null;
 }
 
 interface ScoreResponse {
@@ -33,8 +40,12 @@ interface Scores {
 
 const ScoreContainer = forwardRef<ScoreContainerRef, ScoreContainerProps>((props, ref) => {
   const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://127.0.0.1:2000';
-  const [scores, setScores] = useState<Scores>({ "Strategic Forecast": 0, "Optimism": 0, "Confidence": 0 });
-  const [overallScore, setOverallScore] = useState(0);
+  const [scores, setScores] = useState<Scores>({ 
+    "Strategic Forecast": props.initialScores?.forecast ?? 0, 
+    "Optimism": props.initialScores?.optimism ?? 0, 
+    "Confidence": props.initialScores?.confidence ?? 0 
+  });
+  const [overallScore, setOverallScore] = useState(props.initialScores?.score ?? 0);
   const [showPopup, setShowPopup] = useState(false);
   const router = useRouter();
 
@@ -47,14 +58,12 @@ const ScoreContainer = forwardRef<ScoreContainerRef, ScoreContainerProps>((props
     const docId = pathArray[pathArray.length - 1];
     const authToken = localStorage.getItem("authToken");
 
-    console.log('Fetching scores for document:', docId);
-
     if (docId) {
+      console.log("Fetching scores after typing stopped");
       axios.get<ScoreResponse[]>(`${API_URL}/docs/scores/${docId}`, {
         headers: { 'Authorization': `Bearer ${authToken ?? ''}` }
       })
       .then(response => {
-        console.log('Received scores:', response.data);
         if (response.data?.[0]) {
           const scoreData = response.data[0];
           setScores({
@@ -70,18 +79,6 @@ const ScoreContainer = forwardRef<ScoreContainerRef, ScoreContainerProps>((props
       });
     }
   }, [router.asPath, API_URL]);
-
-  // Fetch scores when component mounts or document ID changes
-  useEffect(() => {
-    fetchScores();
-  }, [fetchScores]);
-
-  // Add dependency on props.text to refetch when content changes
-  useEffect(() => {
-    if (props.text) {
-      fetchScores();
-    }
-  }, [props.text, fetchScores]);
 
   const getScoreIcon = (key: keyof Scores): StaticImageData => {
     switch (key) {

@@ -2,7 +2,7 @@ import DocThumbnail from "./DocThumbnail";
 import SearchBar from "./SearchBar";
 import axios from "axios";
 import type { AxiosResponse, AxiosError } from "axios";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import router from "next/router";
 
 interface Document {
@@ -22,6 +22,19 @@ interface SearchResponse {
 
 interface RefreshResponse {
   access_token: string;
+}
+
+interface DocumentResponse {
+  id: number;
+  title: string;
+  text_chunk: string;
+}
+
+interface ScoreResponse {
+  score: number;
+  optimism: number;
+  forecast: number;
+  confidence: number;
 }
 
 export default function DocsContainer() {
@@ -106,13 +119,36 @@ export default function DocsContainer() {
     }
   }, [handleSearchComplete, API_URL]);
 
-  useEffect(() => {
-    console.log("Initial fetch");
-    void fetchDocuments();
-  }, [fetchDocuments]);
+  const handleDocClick = async (id: number) => {
+    const authToken = localStorage.getItem("authToken");
+    if (!authToken) {
+      setError("No auth token found. Please log in.");
+      void router.push('/login');
+      return;
+    }
 
-  const handleDocClick = (id: number) => {
-    void router.push(`/home/${id}`);
+    try {
+      const [docResponse, scoresResponse] = await Promise.all([
+        axios.get<DocumentResponse>(`${API_URL}/docs/${id}`, {
+          headers: { Authorization: `Bearer ${authToken}` },
+        }),
+        axios.get<ScoreResponse[]>(`${API_URL}/docs/scores/${id}`, {
+          headers: { Authorization: `Bearer ${authToken}` },
+        })
+      ]);
+
+      await router.push({
+        pathname: `/home/${id}`,
+        query: {
+          initialDoc: JSON.stringify(docResponse.data),
+          initialScores: JSON.stringify(scoresResponse.data[0])
+        }
+      });
+    } catch (error) {
+      console.error("Error fetching document data:", error);
+      // Fallback to simple navigation if fetch fails
+      void router.push(`/home/${id}`);
+    }
   };
 
   return (
@@ -129,7 +165,7 @@ export default function DocsContainer() {
           documents.map((document: Document) => (
             <div
               key={document.id}
-              onClick={() => handleDocClick(document.id)}
+              onClick={() => void handleDocClick(document.id)}
               className="cursor-pointer"
             >
               <DocThumbnail

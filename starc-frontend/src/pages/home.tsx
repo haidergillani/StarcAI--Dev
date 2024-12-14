@@ -5,8 +5,8 @@ import Menu from "./components/Menu";
 const HomePage: AppType = () => {
   return (
     <div className="h-screen w-screen">
-      <Menu></Menu>
-      <HomeBody></HomeBody>
+      <Menu />
+      <HomeBody />
     </div>
   );
 };

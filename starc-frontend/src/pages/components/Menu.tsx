@@ -19,6 +19,19 @@ interface MenuProps {
   defaultOpen?: boolean;
 }
 
+interface DocumentResponse {
+  id: number;
+  title: string;
+  text: string;
+}
+
+interface ScoreResponse {
+  score: number;
+  optimism: number;
+  forecast: number;
+  confidence: number;
+}
+
 const Menu: React.FC<MenuProps> = ({ defaultOpen = false }) => {
   const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://127.0.0.1:2000';
   const [isOpen, setIsOpen] = useState(defaultOpen);
@@ -62,34 +75,39 @@ const Menu: React.FC<MenuProps> = ({ defaultOpen = false }) => {
   const toggleMenu = () => setIsOpen(!isOpen);
 
   const createNewDocument = async () => {
-    if (isCreating) return;
-
     setIsCreating(true);
     const authToken = localStorage.getItem("authToken");
     try {
-      const response = await axios.post<{ id: string }>(
+      // Create document
+      const response = await axios.post<DocumentResponse>(
         `${API_URL}/docs`,
-        {
-          title: newDocTitle,
-          text: newDocText,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${authToken}`,
-          },
-        },
+        { title: newDocTitle, text: newDocText },
+        { headers: { Authorization: `Bearer ${authToken}` } }
       );
-
-      const newDocId = response.data.id;
-      if (newDocId) {
-        localStorage.setItem("openDocId", newDocId);
-        setIsNewDocModalOpen(false);
-        void router.push(`/home/${newDocId}`);
-      } else {
-        console.error("No document ID received");
-      }
+      
+      // Fetch both document and scores in parallel
+      const [docResponse, scoresResponse] = await Promise.all([
+        axios.get<DocumentResponse>(
+          `${API_URL}/docs/${response.data.id}`,
+          { headers: { Authorization: `Bearer ${authToken}` } }
+        ),
+        axios.get<ScoreResponse[]>(
+          `${API_URL}/docs/scores/${response.data.id}`,
+          { headers: { Authorization: `Bearer ${authToken}` } }
+        )
+      ]);
+      
+      // Navigate with complete data
+      await router.push({
+        pathname: `/home/${response.data.id}`,
+        query: { 
+          initialDoc: JSON.stringify(docResponse.data),
+          initialScores: JSON.stringify(scoresResponse.data[0])
+        }
+      });
+      setIsNewDocModalOpen(false);
     } catch (error) {
-      console.error("Error creating new document:", error);
+      console.error("Error creating document:", error);
     } finally {
       setIsCreating(false);
     }
