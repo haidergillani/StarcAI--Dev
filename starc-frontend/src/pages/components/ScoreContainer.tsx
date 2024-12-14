@@ -14,7 +14,13 @@ interface ScoreContainerRef {
 }
 
 interface ScoreContainerProps {
-  text?: string;
+  text: string;
+  initialScores?: {
+    score: number;
+    optimism: number;
+    forecast: number;
+    confidence: number;
+  } | null;
 }
 
 interface ScoreResponse {
