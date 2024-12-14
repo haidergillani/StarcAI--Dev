@@ -24,11 +24,15 @@ def create_app():
 
     print(os.environ.get('JWT_SECRET_KEY', 'default_jwt_secret_key'))
 
+
+    # Allow specific origins or use ["*"] to allow all
     app.add_middleware(
         CORSMiddleware,
         allow_origins=[
             "https://starc-frontend-app-4c30515c51d7.herokuapp.com",
+            "https://app.starcai.us",
             "http://localhost:3000",
+            "*"  # During development - remove in production
         ],
         allow_credentials=True,
         allow_methods=["*"],
