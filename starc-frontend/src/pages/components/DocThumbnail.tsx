@@ -1,7 +1,6 @@
 import Image from "next/image";
 import documentIcon from "../../assets/document-icon.svg";
 import trashIcon from "../../assets/trash-icon.svg";
-import { useRouter } from "next/router";
 
 // TODO: declare here to?
 interface DocThumbnailProps {
@@ -17,23 +16,13 @@ export default function DocThumbnail({
   wordCount,
   onDelete,
 }: DocThumbnailProps) {
-  const router = useRouter();
-
-  const handleClick = async () => {
-    // Store the ID first
-    localStorage.setItem("openDocId", id.toString());
-    // Then navigate
-    await router.push(`/home/${id}`);
-  };
-
   const handleDelete = (id: number) => {
     onDelete(id);
   };
 
   return (
     <div
-      onClick={() => void handleClick()}
-      className=" flex h-124 w-250 cursor-pointer flex-col space-y-24 rounded-lg border border-gray-20 bg-white pb-16 pl-24 pr-24 pt-16"
+      className="flex h-124 w-250 cursor-pointer flex-col space-y-24 rounded-lg border border-gray-20 bg-white pb-16 pl-24 pr-24 pt-16"
     >
       <div className="flex justify-between">
         <Image 

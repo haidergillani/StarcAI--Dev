@@ -59,11 +59,7 @@ const HomeBody: React.FC<HomeBodyProps> = ({
         />
       </div>
       <div className="w-[30%] pt-35 pb-42 pr-33 min-w-250">
-        <ScoreContainer 
-          ref={scoreContainerRef} 
-          text={text}
-          initialScores={initialScores}
-        />
+        <ScoreContainer ref={scoreContainerRef} initialScores={initialScores} text={text} />
         {documentId && (
           <Sidebar 
             documentId={documentId} 

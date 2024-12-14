@@ -1,4 +1,4 @@
-import React, { useState, useImperativeHandle, forwardRef, useCallback, useEffect } from 'react';
+import React, { useState, useImperativeHandle, forwardRef, useCallback } from 'react';
 import axios from 'axios';
 import Image from 'next/image';
 import type { StaticImageData } from 'next/image';
@@ -40,8 +40,12 @@ interface Scores {
 
 const ScoreContainer = forwardRef<ScoreContainerRef, ScoreContainerProps>((props, ref) => {
   const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://127.0.0.1:2000';
-  const [scores, setScores] = useState<Scores>({ "Strategic Forecast": 0, "Optimism": 0, "Confidence": 0 });
-  const [overallScore, setOverallScore] = useState(0);
+  const [scores, setScores] = useState<Scores>({ 
+    "Strategic Forecast": props.initialScores?.forecast ?? 0, 
+    "Optimism": props.initialScores?.optimism ?? 0, 
+    "Confidence": props.initialScores?.confidence ?? 0 
+  });
+  const [overallScore, setOverallScore] = useState(props.initialScores?.score ?? 0);
   const [showPopup, setShowPopup] = useState(false);
   const router = useRouter();
 

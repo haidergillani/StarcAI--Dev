@@ -1,5 +1,5 @@
 // pages/home/[doc_id].tsx
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/router';
 import axios from 'axios';
 import HomeBody from '../components/HomeBody';
@@ -19,20 +19,57 @@ interface ScoreData {
   confidence: number;
 }
 
+interface DocumentWithScores {
+  document: DocumentData | null;
+  scores: ScoreData | null;
+}
+
 const DocumentPage: React.FC = () => {
   const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://127.0.0.1:2000';
   const router = useRouter();
-  const { doc_id } = router.query;
+  const { doc_id, initialDoc, initialScores } = router.query;
   const [isLoading, setIsLoading] = useState(true);
-  const [document, setDocument] = useState<DocumentData | null>(null);
-  const [scores, setScores] = useState<ScoreData | null>(null);
+  const [documentData, setDocumentData] = useState<DocumentWithScores | null>(null);
+  const hasSetInitialData = useRef(false);
+  
+  // Create stable debounced function
+  const debouncedUpdate = useRef(
+    debounce((text: string, docId: string, authToken: string, title: string) => {
+      void axios.put(
+        `${API_URL}/docs/${docId}`,
+        { text, title },
+        { headers: { Authorization: `Bearer ${authToken}` } }
+      );
+    }, 1000)
+  ).current;
 
   useEffect(() => {
-    if (doc_id) {
+    if (!router.isReady) return;
+    
+    // Only try to use initial data once
+    if (initialDoc && initialScores && !hasSetInitialData.current) {
+      try {
+        console.log("Using initial data from navigation");
+        setDocumentData({
+          document: JSON.parse(initialDoc as string) as DocumentData,
+          scores: JSON.parse(initialScores as string) as ScoreData
+        });
+        setIsLoading(false);
+        hasSetInitialData.current = true;
+        return;
+      } catch (error) {
+        console.error("Error parsing initial data:", error);
+      }
+    }
+
+    // Only fetch if we haven't set initial data
+    if (doc_id && !hasSetInitialData.current) {
+      console.log("No initial data, fetching fresh data");
       const fetchData = async () => {
         const authToken = localStorage.getItem('authToken') ?? '';
         try {
           const docId = Array.isArray(doc_id) ? doc_id[0] : doc_id;
+          
           const [docResponse, scoresResponse] = await Promise.all([
             axios.get<DocumentData>(`${API_URL}/docs/${docId}`, {
               headers: { Authorization: `Bearer ${authToken}` },
@@ -42,8 +79,11 @@ const DocumentPage: React.FC = () => {
             })
           ]);
 
-          setDocument(docResponse.data);
-          setScores(scoresResponse.data[0] ?? null);
+          setDocumentData({
+            document: docResponse.data,
+            scores: scoresResponse.data[0] ?? null
+          });
+          
           localStorage.setItem('openDocId', String(docResponse.data.id));
           setIsLoading(false);
         } catch (error) {
@@ -53,21 +93,24 @@ const DocumentPage: React.FC = () => {
       };
       void fetchData();
     }
-  }, [doc_id, API_URL]);
+  }, [router.isReady, doc_id, initialDoc, initialScores, API_URL]);
 
   const handleUpdateDocument = useCallback(
     debounce((newText: string) => {
       const authToken = localStorage.getItem('authToken') ?? '';
-      if (document && doc_id) {
+      if (documentData?.document && doc_id) {
         const docId = Array.isArray(doc_id) ? doc_id[0] : doc_id;
-        void axios.put(
-          `${API_URL}/docs/${docId}`,
-          { text: newText, title: document.title },
-          { headers: { Authorization: `Bearer ${authToken}` } }
-        );
+        // Make sure docId is a string
+        if (typeof docId === 'string') {
+          void axios.put(
+            `${API_URL}/docs/${docId}`,
+            { text: newText, title: documentData.document.title },
+            { headers: { Authorization: `Bearer ${authToken}` } }
+          );
+        }
       }
     }, 1000),
-    [document, doc_id, API_URL]
+    [documentData?.document, doc_id, API_URL]
   );
 
   if (isLoading) {
@@ -78,8 +121,8 @@ const DocumentPage: React.FC = () => {
     <div className="h-screen w-screen">
       <Menu />
       <HomeBody 
-        initialDocument={document} 
-        initialScores={scores}
+        initialDocument={documentData?.document} 
+        initialScores={documentData?.scores}
         onUpdateDocument={handleUpdateDocument}
       />
     </div>
