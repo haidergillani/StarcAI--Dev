@@ -20,6 +20,7 @@ const Content = ({ onSave, onUpdateText, text, setText, title }: ContentProps) =
   const [charCount, setCharCount] = useState(0);
   const [countType, setCountType] = useState("word");
   const [dropdownVisible, setDropdownVisible] = useState(false);
+  const [lastScoreUpdate, setLastScoreUpdate] = useState(Date.now());
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://127.0.0.1:2000';
 
@@ -35,8 +36,8 @@ const Content = ({ onSave, onUpdateText, text, setText, title }: ContentProps) =
     }
   };
 
-  const debouncedSave = useCallback(() => {
-    return debounce((newText: string, callback?: () => void) => {
+  const debouncedSave = useCallback(
+    debounce((newText: string) => {
       const openDocId = localStorage.getItem("openDocId");
       const authToken = localStorage.getItem("authToken");
       if (openDocId && authToken) {
@@ -47,20 +48,25 @@ const Content = ({ onSave, onUpdateText, text, setText, title }: ContentProps) =
           headers: {
             Authorization: `Bearer ${authToken}`,
           },
-        }).then(() => {
-          if (callback) callback();
-        }).catch((error) => {
-          console.error("Error saving document:", error);
         });
       }
-    }, 1000);
-  }, [title, API_URL]);
+    }, 2000),
+    [title, API_URL]
+  );
+
+  const debouncedScoreUpdate = useCallback(
+    debounce(() => {
+      onSave();
+    }, 5000),
+    [onSave]
+  );
 
   const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newText = e.target.value;
     setText(newText);
     updateCounts(newText);
-    debouncedSave()(newText, onSave);
+    debouncedSave(newText);
+    debouncedScoreUpdate();
     onUpdateText(newText);
   };
 

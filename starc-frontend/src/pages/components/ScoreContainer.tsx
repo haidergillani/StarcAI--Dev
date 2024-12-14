@@ -3,6 +3,7 @@ import axios from 'axios';
 import Image from 'next/image';
 import type { StaticImageData } from 'next/image';
 import { useRouter } from 'next/router';
+import { debounce } from 'lodash';
 // Score icons
 import score_optimism from '../../assets/score_optimism.svg';
 import score_confidence from '../../assets/score_confidence.svg';
@@ -47,14 +48,12 @@ const ScoreContainer = forwardRef<ScoreContainerRef, ScoreContainerProps>((props
     const docId = pathArray[pathArray.length - 1];
     const authToken = localStorage.getItem("authToken");
 
-    console.log('Fetching scores for document:', docId);
-
     if (docId) {
+      console.log("Fetching scores after typing stopped");
       axios.get<ScoreResponse[]>(`${API_URL}/docs/scores/${docId}`, {
         headers: { 'Authorization': `Bearer ${authToken ?? ''}` }
       })
       .then(response => {
-        console.log('Received scores:', response.data);
         if (response.data?.[0]) {
           const scoreData = response.data[0];
           setScores({
@@ -70,18 +69,6 @@ const ScoreContainer = forwardRef<ScoreContainerRef, ScoreContainerProps>((props
       });
     }
   }, [router.asPath, API_URL]);
-
-  // Fetch scores when component mounts or document ID changes
-  useEffect(() => {
-    fetchScores();
-  }, [fetchScores]);
-
-  // Add dependency on props.text to refetch when content changes
-  useEffect(() => {
-    if (props.text) {
-      fetchScores();
-    }
-  }, [props.text, fetchScores]);
 
   const getScoreIcon = (key: keyof Scores): StaticImageData => {
     switch (key) {
