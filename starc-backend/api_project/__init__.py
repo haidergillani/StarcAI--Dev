@@ -29,12 +29,13 @@ def create_app():
         allow_origins=[
             "https://starc-frontend-app-4c30515c51d7.herokuapp.com",
             "http://localhost:3000",
+            "*"  # During development - remove in production
         ],
         allow_credentials=True,
-        allow_methods=["GET", "POST", "PUT", "DELETE"],
-        allow_headers=["Authorization", "Content-Type"],
-        expose_headers=["Authorization"],
-        max_age=3600,
+        allow_methods=["*"],
+        allow_headers=["*"],
+        expose_headers=["*"],
+        max_age=600,
     )
 
     app.include_router(auth_router, prefix='/auth')
