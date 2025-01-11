@@ -1,18 +1,21 @@
 import React, { useState, forwardRef } from "react";
 import axios from "axios";
+import { ScoreContainerRef } from "./ScoreContainer";
 
 interface SuggestionsContainerProps {
   documentId: number | null;
   onUpdateText: (text: string) => void;
   setText: (text: string) => void;
+  scoreContainerRef: React.RefObject<ScoreContainerRef>;
 }
 
 interface RewriteResponse {
   rewritten_text: string;
+  scores: number[];
 }
 
 const SuggestionsContainer = forwardRef<HTMLDivElement, SuggestionsContainerProps>(
-  ({ documentId, setText }, _ref) => {
+  ({ documentId, setText, scoreContainerRef }, _ref) => {
     const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://127.0.0.1:2000';
     const [prompts, setPrompts] = useState([
       { id: 1, prompt: "Induce confidence in this" }
@@ -40,6 +43,10 @@ const SuggestionsContainer = forwardRef<HTMLDivElement, SuggestionsContainerProp
           if (response.status === 200) {
             const rewrittenText = response.data.rewritten_text;
             setText(rewrittenText);
+
+            if (response.data.scores && scoreContainerRef.current) {
+              scoreContainerRef.current.updateScores(response.data.scores);
+            }
 
             await axios.post(
               `${API_URL}/docs/${documentId}/save_rewrite`,

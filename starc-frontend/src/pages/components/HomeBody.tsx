@@ -1,7 +1,7 @@
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import Content from './Content';
 import Sidebar from './Sidebar';
-import ScoreContainer from './ScoreContainer';
+import ScoreContainer, { ScoreContainerRef } from './ScoreContainer';
 import Chatbot from './Chatbot';
 
 interface HomeBodyProps {
@@ -27,8 +27,8 @@ const HomeBody: React.FC<HomeBodyProps> = ({
   const [text, setText] = useState(initialDocument?.text_chunk ?? "");
   const [title] = useState(initialDocument?.title ?? "");
   const documentId = initialDocument?.id ?? null;
-  const scoreContainerRef = useRef<{ fetchScores: () => void } | null>(null);
   const suggestionsContainerRef = useRef<{ fetchSuggestions: () => void } | null>(null);
+  const scoreContainerRef = useRef<ScoreContainerRef | null>(null);
 
   const handleUpdateText = useCallback((newText: string) => {
     setText(newText);
@@ -51,11 +51,11 @@ const HomeBody: React.FC<HomeBodyProps> = ({
       </div>
       <div className="flex-1 py-4 w-[28%]">
         <Content 
-          onSave={handleSave}
           onUpdateText={handleUpdateText} 
           text={text} 
           setText={setText} 
-          title={title} 
+          title={title}
+          onSave={handleSave}
         />
       </div>
       <div className="w-[30%] pt-35 pb-42 pr-33 min-w-250">
@@ -66,6 +66,7 @@ const HomeBody: React.FC<HomeBodyProps> = ({
             onUpdateText={handleUpdateText} 
             setText={setText}
             suggestionsContainerRef={suggestionsContainerRef}
+            scoreContainerRef={scoreContainerRef}
           />
         )}
       </div>

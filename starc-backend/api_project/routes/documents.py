@@ -128,9 +128,6 @@ def update_document(doc_id: int, document: DocumentCreate, Authorize: AuthJWT = 
     if not existing_document:
         raise HTTPException(status_code=404, detail="Document not found or access denied")
 
-    if document.title:
-        existing_document.title = document.title
-
     if document.text:
         existing_text_chunk = db.query(TextChunks).filter_by(document_id=existing_document.id).first()
         if existing_text_chunk:
@@ -140,25 +137,41 @@ def update_document(doc_id: int, document: DocumentCreate, Authorize: AuthJWT = 
             db.commit()
             db.refresh(existing_text_chunk)
 
-            original_scores_data = get_scoresSA(document.text)
-            rewritten_scores_data = get_scoresSA(rewritten_text)
+            new_text_scores = get_scoresSA(document.text)
+            rewritten_scores = get_scoresSA(rewritten_text)
 
+            # Keep initial_score as is - it represents the original text's scores
             initial_score = db.query(InitialScore).filter_by(text_chunk_id=existing_text_chunk.id).first()
-            if initial_score:
-                initial_score.score = original_scores_data[0]
-                initial_score.optimism = original_scores_data[1]
-                initial_score.forecast = original_scores_data[2]
-                initial_score.confidence = original_scores_data[3]
 
+            # Update final_score with the new text's scores
             final_score = db.query(FinalScore).filter_by(text_chunk_id=existing_text_chunk.id).first()
             if final_score:
-                final_score.score = rewritten_scores_data[0]
-                final_score.optimism = rewritten_scores_data[1]
-                final_score.forecast = rewritten_scores_data[2]
-                final_score.confidence = rewritten_scores_data[3]
+                final_score.score = new_text_scores[0]        # Changed from rewritten_scores to new_text_scores
+                final_score.optimism = new_text_scores[1]
+                final_score.forecast = new_text_scores[2]
+                final_score.confidence = new_text_scores[3]
 
             existing_document.word_count = len(document.text.split())
             db.commit()
+            db.refresh(initial_score)
+            db.refresh(final_score)
+
+            return {
+                "message": "Document updated successfully", 
+                "document_id": existing_document.id,
+                "initial_scores": {
+                    "score": initial_score.score,
+                    "optimism": initial_score.optimism,
+                    "forecast": initial_score.forecast,
+                    "confidence": initial_score.confidence
+                },
+                "final_scores": {
+                    "score": final_score.score,
+                    "optimism": final_score.optimism,
+                    "forecast": final_score.forecast,
+                    "confidence": final_score.confidence
+                }
+            }
 
     return {"message": "Document updated successfully", "document_id": existing_document.id}
 
