@@ -4,6 +4,7 @@ import { useRouter } from 'next/router';
 import axios from 'axios';
 import HomeBody from '../components/HomeBody';
 import Menu from '../components/Menu';
+import { ScoreContainerRef } from '../components/ScoreContainer';
 import debounce from 'lodash/debounce';
 
 interface DocumentData {
@@ -100,13 +101,27 @@ const DocumentPage: React.FC = () => {
       const authToken = localStorage.getItem('authToken') ?? '';
       if (documentData?.document && doc_id) {
         const docId = Array.isArray(doc_id) ? doc_id[0] : doc_id;
-        // Make sure docId is a string
         if (typeof docId === 'string') {
-          void axios.put(
+          axios.put(
             `${API_URL}/docs/${docId}`,
             { text: newText, title: documentData.document.title },
             { headers: { Authorization: `Bearer ${authToken}` } }
-          );
+          ).then(response => {
+            console.log('PUT response:', response.data);
+            
+            if (response.data.final_scores) {
+              console.log('Setting new scores:', response.data.final_scores);
+              
+              setDocumentData(prevData => {
+                const newData = {
+                  document: prevData?.document ?? null,
+                  scores: response.data.final_scores
+                };
+                console.log('New document data:', newData);
+                return newData;
+              });
+            }
+          });
         }
       }
     }, 1000),

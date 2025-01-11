@@ -1,4 +1,4 @@
-import React, { useState, useImperativeHandle, forwardRef, useCallback } from 'react';
+import React, { useState, useImperativeHandle, forwardRef, useCallback, useEffect } from 'react';
 import axios from 'axios';
 import Image from 'next/image';
 import type { StaticImageData } from 'next/image';
@@ -9,8 +9,14 @@ import score_optimism from '../../assets/score_optimism.svg';
 import score_confidence from '../../assets/score_confidence.svg';
 import score_strategicforecast from '../../assets/score_strategicforecast.svg';
 
-interface ScoreContainerRef {
+export interface ScoreContainerRef {
   fetchScores: () => void;
+  updateScores: (scores: number[] | {
+    score: number;
+    optimism: number;
+    forecast: number;
+    confidence: number;
+  }) => void;
 }
 
 interface ScoreContainerProps {
@@ -40,14 +46,32 @@ interface Scores {
 
 const ScoreContainer = forwardRef<ScoreContainerRef, ScoreContainerProps>((props, ref) => {
   const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://127.0.0.1:2000';
-  const [scores, setScores] = useState<Scores>({ 
-    "Strategic Forecast": props.initialScores?.forecast ?? 0, 
-    "Optimism": props.initialScores?.optimism ?? 0, 
-    "Confidence": props.initialScores?.confidence ?? 0 
-  });
-  const [overallScore, setOverallScore] = useState(props.initialScores?.score ?? 0);
+  const [scores, setScores] = useState<Record<string, number>>({});
+  const [overallScore, setOverallScore] = useState(0);
   const [showPopup, setShowPopup] = useState(false);
   const router = useRouter();
+
+  // Debug incoming props
+  useEffect(() => {
+    console.log('ScoreContainer received props:', props.initialScores);
+  }, [props.initialScores]);
+
+  // Debug state updates
+  useEffect(() => {
+    console.log('ScoreContainer state:', { scores, overallScore });
+  }, [scores, overallScore]);
+
+  useEffect(() => {
+    if (props.initialScores) {
+      console.log('Updating scores from props:', props.initialScores);
+      setScores({
+        "Strategic Forecast": props.initialScores.forecast,
+        "Optimism": props.initialScores.optimism,
+        "Confidence": props.initialScores.confidence
+      });
+      setOverallScore(props.initialScores.score);
+    }
+  }, [props.initialScores]);
 
   const closePopup = () => {
     setShowPopup(false);
@@ -80,6 +104,31 @@ const ScoreContainer = forwardRef<ScoreContainerRef, ScoreContainerProps>((props
     }
   }, [router.asPath, API_URL]);
 
+  const updateScores = useCallback((scores: number[] | {
+    score: number;
+    optimism: number;
+    forecast: number;
+    confidence: number;
+  }) => {
+    if (Array.isArray(scores)) {
+      // Handle rewrite response format [overall, optimism, strategic_forecast, confidence]
+      setScores({
+        "Strategic Forecast": scores[2] ?? 0,
+        "Optimism": scores[1] ?? 0,
+        "Confidence": scores[3] ?? 0
+      });
+      setOverallScore(scores[0] ?? 0);
+    } else {
+      // Handle document update response format
+      setScores({
+        "Strategic Forecast": scores.forecast ?? 0,
+        "Optimism": scores.optimism ?? 0,
+        "Confidence": scores.confidence ?? 0
+      });
+      setOverallScore(scores.score ?? 0);
+    }
+  }, []);
+
   const getScoreIcon = (key: keyof Scores): StaticImageData => {
     switch (key) {
       case 'Optimism':
@@ -94,7 +143,8 @@ const ScoreContainer = forwardRef<ScoreContainerRef, ScoreContainerProps>((props
   };
 
   useImperativeHandle(ref, () => ({
-    fetchScores
+    fetchScores,
+    updateScores
   }));
 
   return (
