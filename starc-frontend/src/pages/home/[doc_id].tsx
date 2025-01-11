@@ -4,7 +4,6 @@ import { useRouter } from 'next/router';
 import axios from 'axios';
 import HomeBody from '../components/HomeBody';
 import Menu from '../components/Menu';
-import { ScoreContainerRef } from '../components/ScoreContainer';
 import debounce from 'lodash/debounce';
 
 interface DocumentData {
@@ -23,6 +22,13 @@ interface ScoreData {
 interface DocumentWithScores {
   document: DocumentData | null;
   scores: ScoreData | null;
+}
+
+interface PutResponse {
+  message: string;
+  document_id: number;
+  initial_scores: ScoreData;
+  final_scores: ScoreData;
 }
 
 const DocumentPage: React.FC = () => {
@@ -102,7 +108,7 @@ const DocumentPage: React.FC = () => {
       if (documentData?.document && doc_id) {
         const docId = Array.isArray(doc_id) ? doc_id[0] : doc_id;
         if (typeof docId === 'string') {
-          axios.put(
+          void axios.put<PutResponse>(
             `${API_URL}/docs/${docId}`,
             { text: newText, title: documentData.document.title },
             { headers: { Authorization: `Bearer ${authToken}` } }
@@ -121,11 +127,13 @@ const DocumentPage: React.FC = () => {
                 return newData;
               });
             }
+          }).catch(error => {
+            console.error('Error updating document:', error);
           });
         }
       }
     }, 1000),
-    [documentData?.document, doc_id, API_URL]
+    [API_URL, doc_id, documentData?.document]
   );
 
   if (isLoading) {
