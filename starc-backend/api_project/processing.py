@@ -2,8 +2,10 @@ import requests
 import json
 import random
 import os
+import aiohttp
 from openai import OpenAI
 from dotenv import load_dotenv
+import time
 
 load_dotenv()
 
@@ -72,21 +74,26 @@ def generate_sentence_suggestions(text):
     
     return suggestions
 
-def get_scoresSA(text):
+async def get_scoresSA(text):
     '''
     Do NOT use this anywhere in code.
     '''
     url_SA = f'https://us-central1-starcai.cloudfunctions.net/entry_pointSA?apikey={gc_virtual_api_key}'
-    response_SA = requests.post(url_SA, json={'text': text})
-    scores = json.loads(response_SA.text)
-    if isinstance(scores, list):
-        scores = [float(score) for score in scores]
-    return scores
+    async with aiohttp.ClientSession() as session:
+        async with session.post(url_SA, json={'text': text}) as response:
+            response_text = await response.text()
+            scores = json.loads(response_text)
+            if isinstance(scores, list):
+                scores = [float(score) for score in scores]
+            return scores
 
-def get_scores(text):
+async def get_scores(text):
     '''
     Use this as the function, no change needed
     '''
+    # Simulate some async processing time
+    import asyncio
+    await asyncio.sleep(0.1)
     random_numbers = [random.uniform(1,100) for _ in range(4)]
     return random_numbers
 
@@ -142,3 +149,37 @@ def chat_bot(prompt, chat_log=None):
     except Exception as e:
         print("Error occurred while generating response:", str(e))
         return str(e), chat_log
+
+async def warmup_model():
+    '''
+    Warms up the model by sending a minimal request.
+    This helps avoid cold start latency.
+    '''
+    try:
+        await get_scoresSA("test") # Minimal text to warm up the model
+        return True
+    except Exception as e:
+        print(f"Error warming up model: {e}")
+        return False
+
+# Keep track of last warmup time
+last_warmup_time = 0
+
+async def ensure_model_warm():
+    '''
+    Ensures the model is warm by checking the last warmup time
+    and warming up if necessary (if more than 15 minutes have passed)
+    '''
+    global last_warmup_time
+    current_time = time.time()
+    
+    # If more than 10 minutes have passed since last warmup
+    if current_time - last_warmup_time > 600:  # 600 seconds = 10 minutes
+        success = await warmup_model()
+        if success:
+            last_warmup_time = current_time
+            print(f"Model warmed up successfully at {current_time}")
+        return success
+    else:
+        print(f"Model still warm, last warmup was {current_time - last_warmup_time} seconds ago")
+    return True
