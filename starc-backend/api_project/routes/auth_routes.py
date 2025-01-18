@@ -56,13 +56,14 @@ async def google_login(request: Request, db: Session = Depends(get_db), Authoriz
                 db.add(user)
                 db.commit()
 
-            # Create access token
+            # Create access token and refresh token
             access_token = Authorize.create_access_token(subject=user.id)
+            refresh_token = Authorize.create_refresh_token(subject=user.id)
             
             # Warm up model in background
             asyncio.create_task(ensure_model_warm())
             
-            return {"access_token": access_token}
+            return {"access_token": access_token, "refresh_token": refresh_token}
             
         except ValueError as e:
             raise HTTPException(status_code=401, detail=f"Invalid token: {str(e)}")
@@ -99,11 +100,12 @@ async def login(user: UserLogin, Authorize: AuthJWT = Depends(), db: Session = D
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
     access_token = Authorize.create_access_token(subject=db_user.id)
+    refresh_token = Authorize.create_refresh_token(subject=db_user.id)
     
     # Warm up model in background
     asyncio.create_task(ensure_model_warm())
     
-    return {"access_token": access_token}
+    return {"access_token": access_token, "refresh_token": refresh_token}
 
 @auth_router.post('/refresh', response_model=TokenResponse)
 def refresh_token(Authorize: AuthJWT = Depends()):

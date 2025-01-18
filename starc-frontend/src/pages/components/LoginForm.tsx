@@ -1,17 +1,17 @@
 import React, { useState } from "react";
-import axios from "axios";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { GoogleLogin } from "@react-oauth/google";
 import type { CredentialResponse } from "@react-oauth/google";
 import Spinner from "./Spinner";
+import { storeTokens, api } from "../../utils/auth";
 
 interface AuthResponse {
   access_token: string;
+  refresh_token?: string;
 }
 
 export default function LoginForm() {
-  const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://127.0.0.1:2000';
   const [loginIdentifier, setLoginIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [loginError, setLoginError] = useState("");
@@ -33,14 +33,13 @@ export default function LoginForm() {
     if (isFormValid()) {
       try {
         setIsLoading(true);
-        const response = await axios.post<AuthResponse>(`${API_URL}/auth/login`, {
+        const response = await api.post<AuthResponse>(`/auth/login`, {
           login_identifier: loginIdentifier,
           password,
         });
 
-        const accessToken = response.data.access_token;
-        if (accessToken) {
-          localStorage.setItem("authToken", accessToken);
+        if (response.data.access_token) {
+          storeTokens(response.data);
           await new Promise(resolve => setTimeout(resolve, 1000));
           void router.push("/docs");
         } else {
@@ -62,13 +61,12 @@ export default function LoginForm() {
       }
 
       setIsLoading(true);
-      const res = await axios.post<AuthResponse>(`${API_URL}/auth/google`, {
+      const res = await api.post<AuthResponse>(`/auth/google`, {
         token: response.credential,
       });
 
-      const accessToken = res.data.access_token;
-      if (accessToken) {
-        localStorage.setItem("authToken", accessToken);
+      if (res.data.access_token) {
+        storeTokens(res.data);
         await new Promise(resolve => setTimeout(resolve, 1000));
         void router.push("/docs");
       } else {

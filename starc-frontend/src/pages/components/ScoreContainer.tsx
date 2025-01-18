@@ -3,7 +3,6 @@ import axios from 'axios';
 import Image from 'next/image';
 import type { StaticImageData } from 'next/image';
 import { useRouter } from 'next/router';
-import { debounce } from 'lodash';
 // Score icons
 import score_optimism from '../../assets/score_optimism.svg';
 import score_confidence from '../../assets/score_confidence.svg';
