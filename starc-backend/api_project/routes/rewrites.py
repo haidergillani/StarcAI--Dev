@@ -4,9 +4,9 @@ from sqlalchemy.orm import Session
 from api_project.models import Document, TextChunks, Suggestion, FinalScore
 from api_project.database import get_db
 from api_project.schemas import TextChunkUpdate, TextChunkResponse, SuggestionCreate, SuggestionResponse
-from api_project.schemas import RewriteRequest # Import only the needed Pydantic models
+from api_project.schemas import ChatRequest, ChatMessage, ChatResponse, RewriteRequest # Import the Pydantic models
 from typing import List
-from api_project.processing import rewrite_text_with_prompt, get_scoresSA # Import only the needed functions
+from api_project.processing import generate_sentence_suggestions, chat_bot, rewrite_text_with_prompt, get_scoresSA # Import the functions
 
 rewrite_router = APIRouter()
 
@@ -91,3 +91,22 @@ async def rewrite_text(document_id: int, rewrite_request: RewriteRequest, Author
         "rewritten_text": rewritten_text,
         "scores": scores
     }
+
+@rewrite_router.post('/chat', response_model=ChatResponse)
+def chat_with_bot(chat_request: ChatRequest, Authorize: AuthJWT = Depends(), db: Session = Depends(get_db)):
+    Authorize.jwt_required()
+    user_id = Authorize.get_jwt_subject()
+    
+    print("Received chat request:", chat_request)
+
+    # Convert ChatMessage objects to dictionaries
+    chat_log = [msg.dict() for msg in chat_request.chat_log]
+
+    try:
+        response, updated_chat_log = chat_bot(chat_request.prompt, chat_log)
+        # Convert updated chat log back to list of ChatMessage objects
+        updated_chat_log = [ChatMessage(**msg) for msg in updated_chat_log]
+        return ChatResponse(response=response, chat_log=updated_chat_log)
+    except Exception as e:
+        print("Error occurred in chat_with_bot endpoint:", str(e))
+        raise HTTPException(status_code=500, detail=str(e))
