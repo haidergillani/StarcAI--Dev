@@ -64,7 +64,8 @@ This will discover and run all the tests in the `tests` directory.
   - `documents.py`: Handles creation, updating, deletion, and downloading of documents; accesses their scores, and supports PDF format as well.
   - `rewrites.py`: Provides suggestions, and options to delete or accept suggestions separately or together.
   - `search.py`: Enables querying and searching documents for a user.
-- `Starc.png`: A diagram representing the database schema of the application.
+- `static`:
+  - `Starc.png`: A diagram representing the database schema of the application.
 - `__init__.py`: Initializes the app, database, JWT authentication, and loads blueprints.
 - `models.py`: Defines the database models.
 - `processing.py`: Handles external requests to text scoring and rewriting logic hosted on Google Cloud.
