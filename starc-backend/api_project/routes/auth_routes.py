@@ -6,9 +6,11 @@ from starlette.config import Config
 from api_project.models import User
 from api_project.database import get_db
 from api_project.schemas import UserCreate, UserLogin, TokenResponse
+from api_project.processing import ensure_model_warm
 import os
 from google.oauth2 import id_token
 from google.auth.transport import requests
+import asyncio
 
 auth_router = APIRouter()
 
@@ -54,13 +56,18 @@ async def google_login(request: Request, db: Session = Depends(get_db), Authoriz
                 db.add(user)
                 db.commit()
 
-            # Create access token
+            # Create access token and refresh token
             access_token = Authorize.create_access_token(subject=user.id)
-            return {"access_token": access_token}
+            refresh_token = Authorize.create_refresh_token(subject=user.id)
+            
+            # Warm up model in background
+            asyncio.create_task(ensure_model_warm())
+            
+            return {"access_token": access_token, "refresh_token": refresh_token}
             
         except ValueError as e:
             raise HTTPException(status_code=401, detail=f"Invalid token: {str(e)}")
-            
+
     except HTTPException as he:
         raise he
     except Exception as e:
@@ -83,7 +90,7 @@ def register(user: UserCreate, db: Session = Depends(get_db)):
 
 # Login using either email or password, which checks your password to return an auth token.
 @auth_router.post('/login', response_model=TokenResponse)
-def login(user: UserLogin, Authorize: AuthJWT = Depends(), db: Session = Depends(get_db)):
+async def login(user: UserLogin, Authorize: AuthJWT = Depends(), db: Session = Depends(get_db)):
     db_user = db.query(User).filter(
         (User.username == user.login_identifier) | 
         (User.email == user.login_identifier)
@@ -93,7 +100,12 @@ def login(user: UserLogin, Authorize: AuthJWT = Depends(), db: Session = Depends
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
     access_token = Authorize.create_access_token(subject=db_user.id)
-    return {"access_token": access_token}
+    refresh_token = Authorize.create_refresh_token(subject=db_user.id)
+    
+    # Warm up model in background
+    asyncio.create_task(ensure_model_warm())
+    
+    return {"access_token": access_token, "refresh_token": refresh_token}
 
 @auth_router.post('/refresh', response_model=TokenResponse)
 def refresh_token(Authorize: AuthJWT = Depends()):

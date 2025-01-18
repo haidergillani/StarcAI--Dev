@@ -3,7 +3,7 @@ from fastapi_jwt_auth import AuthJWT
 from sqlalchemy.orm import Session
 from api_project.models import Document, TextChunks, InitialScore, FinalScore
 from api_project.database import get_db
-from api_project.processing import get_scoresSA, get_rewrite, chat_bot
+from api_project.processing import get_scoresSA, get_rewrite, chat_bot, ensure_model_warm
 from api_project.schemas import DocumentCreate, DocumentResponse, PDFUploadResponse, ChatBotRequest, ChatBotResponse,SaveRewriteRequest
 from pypdf import PdfReader
 from fastapi.responses import StreamingResponse
@@ -20,16 +20,19 @@ documents_router = APIRouter()
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-def process_document(user_id: int, title: str, text: str, db: Session):
+async def process_document(user_id: int, title: str, text: str, db: Session):
+    # Ensure model is warm before processing
+    await ensure_model_warm()
+    
     new_document = Document(title=title, user_id=user_id, word_count=len(text.split()))
     db.add(new_document)
     db.commit()
     db.refresh(new_document)
 
     new_text_chunk = TextChunks(document_id=new_document.id, input_text_chunk=text)
-    original_scores_data = get_scoresSA(text)
+    original_scores_data = await get_scoresSA(text)
     rewritten_text = get_rewrite(text)
-    rewritten_scores_data = get_scoresSA(rewritten_text)
+    rewritten_scores_data = await get_scoresSA(rewritten_text)
 
     new_text_chunk.rewritten_text = rewritten_text
     db.add(new_text_chunk)
@@ -59,11 +62,11 @@ def process_document(user_id: int, title: str, text: str, db: Session):
     return new_document
 
 @documents_router.post("", response_model=DocumentResponse)
-def create_document(document: DocumentCreate, Authorize: AuthJWT = Depends(), db: Session = Depends(get_db)):
+async def create_document(document: DocumentCreate, Authorize: AuthJWT = Depends(), db: Session = Depends(get_db)):
     Authorize.jwt_required()
     user_id = Authorize.get_jwt_subject()
 
-    new_document = process_document(user_id, document.title, document.text, db)
+    new_document = await process_document(user_id, document.title, document.text, db)
     return DocumentResponse(
         id=new_document.id,
         title=new_document.title,
@@ -71,7 +74,7 @@ def create_document(document: DocumentCreate, Authorize: AuthJWT = Depends(), db
     )
 
 @documents_router.post("/pdf", response_model=PDFUploadResponse)
-def upload_pdf(file: UploadFile = File(...), Authorize: AuthJWT = Depends(), db: Session = Depends(get_db)):
+async def upload_pdf(file: UploadFile = File(...), Authorize: AuthJWT = Depends(), db: Session = Depends(get_db)):
     Authorize.jwt_required()
     user_id = Authorize.get_jwt_subject()
 
@@ -84,7 +87,7 @@ def upload_pdf(file: UploadFile = File(...), Authorize: AuthJWT = Depends(), db:
         for page in pdf_reader.pages:
             text_content += page.extract_text() + "\n"
 
-        new_document = process_document(user_id, file.filename, text_content, db)
+        new_document = await process_document(user_id, file.filename, text_content, db)
         
         # Retrieve the TextChunks object associated with the new document
         new_text_chunk = db.query(TextChunks).filter_by(document_id=new_document.id).first()
@@ -120,7 +123,7 @@ def delete_document(doc_id: int, Authorize: AuthJWT = Depends(), db: Session = D
     return {"message": "Document and related data deleted successfully"}
 
 @documents_router.put("/{doc_id}", response_model=dict)
-def update_document(doc_id: int, document: DocumentCreate, Authorize: AuthJWT = Depends(), db: Session = Depends(get_db)):
+async def update_document(doc_id: int, document: DocumentCreate, Authorize: AuthJWT = Depends(), db: Session = Depends(get_db)):
     Authorize.jwt_required()
     user_id = Authorize.get_jwt_subject()
 
@@ -137,8 +140,7 @@ def update_document(doc_id: int, document: DocumentCreate, Authorize: AuthJWT = 
             db.commit()
             db.refresh(existing_text_chunk)
 
-            new_text_scores = get_scoresSA(document.text)
-            rewritten_scores = get_scoresSA(rewritten_text)
+            new_text_scores = await get_scoresSA(document.text)
 
             # Keep initial_score as is - it represents the original text's scores
             initial_score = db.query(InitialScore).filter_by(text_chunk_id=existing_text_chunk.id).first()
@@ -146,7 +148,7 @@ def update_document(doc_id: int, document: DocumentCreate, Authorize: AuthJWT = 
             # Update final_score with the new text's scores
             final_score = db.query(FinalScore).filter_by(text_chunk_id=existing_text_chunk.id).first()
             if final_score:
-                final_score.score = new_text_scores[0]        # Changed from rewritten_scores to new_text_scores
+                final_score.score = new_text_scores[0]
                 final_score.optimism = new_text_scores[1]
                 final_score.forecast = new_text_scores[2]
                 final_score.confidence = new_text_scores[3]
@@ -278,3 +280,15 @@ def save_rewrite(doc_id: int, request: SaveRewriteRequest, Authorize: AuthJWT = 
     db.commit()
 
     return {"message": "Rewritten text saved successfully"}
+
+@documents_router.get("/warmup", response_model=dict)
+async def warmup_endpoint(Authorize: AuthJWT = Depends()):
+    '''
+    Endpoint to warm up the model. This can be called manually if needed.
+    '''
+    Authorize.jwt_required()
+    success = await ensure_model_warm()
+    if success:
+        return {"status": "success", "message": "Model warmed up successfully"}
+    else:
+        raise HTTPException(status_code=500, detail="Failed to warm up model")
