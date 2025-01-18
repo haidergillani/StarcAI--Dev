@@ -1,5 +1,5 @@
-import axios, { AxiosInstance } from 'axios';
-import { useRouter } from 'next/router';
+import type { AxiosInstance, InternalAxiosRequestConfig } from 'axios';
+import axios from 'axios';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://127.0.0.1:2000';
 
@@ -23,7 +23,7 @@ export const storeTokens = (tokens: TokenPair) => {
             localStorage.setItem('refreshToken', tokens.refresh_token);
         }
         // Update axios default authorization header
-        api.defaults.headers.common['Authorization'] = `Bearer ${tokens.access_token}`;
+        api.defaults.headers.common.Authorization = `Bearer ${tokens.access_token}`;
     }
 };
 
@@ -35,8 +35,8 @@ export const getStoredTokens = (): TokenPair => {
         };
     }
     return {
-        access_token: localStorage.getItem('authToken') || '',
-        refresh_token: localStorage.getItem('refreshToken') || '',
+        access_token: localStorage.getItem('authToken') ?? '',
+        refresh_token: localStorage.getItem('refreshToken') ?? '',
     };
 };
 
@@ -45,7 +45,7 @@ export const clearTokens = () => {
         localStorage.removeItem('authToken');
         localStorage.removeItem('refreshToken');
         // Remove authorization header
-        delete api.defaults.headers.common['Authorization'];
+        delete api.defaults.headers.common.Authorization;
     }
 };
 
@@ -53,7 +53,7 @@ export const clearTokens = () => {
 if (typeof window !== 'undefined') {
     const tokens = getStoredTokens();
     if (tokens.access_token) {
-        api.defaults.headers.common['Authorization'] = `Bearer ${tokens.access_token}`;
+        api.defaults.headers.common.Authorization = `Bearer ${tokens.access_token}`;
     }
 }
 
@@ -75,7 +75,7 @@ export const refreshAccessToken = async (): Promise<string | null> => {
         const newAccessToken = response.data.access_token;
         if (newAccessToken) {
             localStorage.setItem('authToken', newAccessToken);
-            api.defaults.headers.common['Authorization'] = `Bearer ${newAccessToken}`;
+            api.defaults.headers.common.Authorization = `Bearer ${newAccessToken}`;
             return newAccessToken;
         }
         return null;
@@ -87,7 +87,7 @@ export const refreshAccessToken = async (): Promise<string | null> => {
 
 // Add request interceptor to add auth header
 api.interceptors.request.use(
-    (config) => {
+    (config: InternalAxiosRequestConfig) => {
         if (typeof window !== 'undefined') {
             const token = localStorage.getItem('authToken');
             if (token) {
@@ -104,8 +104,13 @@ api.interceptors.request.use(
 // Add response interceptor to handle token refresh
 api.interceptors.response.use(
     (response) => response,
-    async (error) => {
-        const originalRequest = error.config;
+    async (error: unknown) => {
+        // Type guard for axios error
+        if (!axios.isAxiosError(error) || !error.config) {
+            return Promise.reject(error);
+        }
+
+        const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
 
         // If the error is 401 and we haven't tried to refresh the token yet
         if (error.response?.status === 401 && !originalRequest._retry) {
@@ -113,7 +118,7 @@ api.interceptors.response.use(
 
             const newToken = await refreshAccessToken();
             if (newToken) {
-                originalRequest.headers['Authorization'] = `Bearer ${newToken}`;
+                originalRequest.headers.Authorization = `Bearer ${newToken}`;
                 return api(originalRequest);
             } else {
                 // If refresh failed, redirect to login

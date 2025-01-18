@@ -1,6 +1,21 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 
-const Spinner = () => {
+interface SpinnerProps {
+  duration?: number; // Duration in milliseconds
+  onComplete?: () => void;
+}
+
+const Spinner: React.FC<SpinnerProps> = ({ duration, onComplete }) => {
+  useEffect(() => {
+    if (duration && onComplete) {
+      const timer = setTimeout(() => {
+        onComplete();
+      }, duration);
+
+      return () => clearTimeout(timer);
+    }
+  }, [duration, onComplete]);
+
   return (
     <div role="status" className="flex justify-center items-center">
       <svg
