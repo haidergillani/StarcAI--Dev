@@ -2,9 +2,9 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { getStoredTokens, clearTokens } from '../utils/auth';
 
-export const useAuth = (requireAuth: boolean = true) => {
-    const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
-    const [isLoading, setIsLoading] = useState<boolean>(true);
+export const useAuth = (requireAuth = true) => {
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
     const router = useRouter();
 
     useEffect(() => {
@@ -16,9 +16,9 @@ export const useAuth = (requireAuth: boolean = true) => {
             setIsLoading(false);
 
             if (requireAuth && !hasValidTokens) {
-                router.push('/login');
+                void router.push('/login');
             } else if (!requireAuth && hasValidTokens) {
-                router.push('/docs');
+                void router.push('/docs');
             }
         };
 
@@ -28,7 +28,7 @@ export const useAuth = (requireAuth: boolean = true) => {
     const logout = () => {
         clearTokens();
         setIsAuthenticated(false);
-        router.push('/login');
+        void router.push('/login');
     };
 
     return { isAuthenticated, isLoading, logout };

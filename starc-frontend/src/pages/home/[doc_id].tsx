@@ -41,12 +41,23 @@ const DocumentPage: React.FC = () => {
   
   // Create stable debounced function
   const debouncedUpdate = useRef(
-    debounce((text: string, docId: string, authToken: string, title: string) => {
-      void axios.put(
-        `${API_URL}/docs/${docId}`,
-        { text, title },
-        { headers: { Authorization: `Bearer ${authToken}` } }
-      );
+    debounce(async (text: string, docId: string, authToken: string, title: string) => {
+      try {
+        const response = await axios.put<PutResponse>(
+          `${API_URL}/docs/${docId}`,
+          { text, title },
+          { headers: { Authorization: `Bearer ${authToken}` } }
+        );
+        
+        if (response.data.final_scores) {
+          setDocumentData(prevData => ({
+            document: prevData?.document ?? null,
+            scores: response.data.final_scores
+          }));
+        }
+      } catch (error) {
+        console.error('Error in debounced update:', error);
+      }
     }, 1000)
   ).current;
 
@@ -103,37 +114,16 @@ const DocumentPage: React.FC = () => {
   }, [router.isReady, doc_id, initialDoc, initialScores, API_URL]);
 
   const handleUpdateDocument = useCallback(
-    debounce((newText: string) => {
+    (newText: string) => {
       const authToken = localStorage.getItem('authToken') ?? '';
       if (documentData?.document && doc_id) {
         const docId = Array.isArray(doc_id) ? doc_id[0] : doc_id;
         if (typeof docId === 'string') {
-          void axios.put<PutResponse>(
-            `${API_URL}/docs/${docId}`,
-            { text: newText, title: documentData.document.title },
-            { headers: { Authorization: `Bearer ${authToken}` } }
-          ).then(response => {
-            console.log('PUT response:', response.data);
-            
-            if (response.data.final_scores) {
-              console.log('Setting new scores:', response.data.final_scores);
-              
-              setDocumentData(prevData => {
-                const newData = {
-                  document: prevData?.document ?? null,
-                  scores: response.data.final_scores
-                };
-                console.log('New document data:', newData);
-                return newData;
-              });
-            }
-          }).catch(error => {
-            console.error('Error updating document:', error);
-          });
+          void debouncedUpdate(newText, docId, authToken, documentData.document.title);
         }
       }
-    }, 1000),
-    [API_URL, doc_id, documentData?.document]
+    },
+    [doc_id, documentData?.document, debouncedUpdate]
   );
 
   if (isLoading) {
