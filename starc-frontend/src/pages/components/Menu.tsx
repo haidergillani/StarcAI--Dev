@@ -4,6 +4,7 @@ import Image from "next/image";
 import type { StaticImageData } from "next/image";
 import axios from 'axios';
 import styles from "../../styles/Menu.module.css";
+import Spinner from "./Spinner";
 
 // Importing icons
 import HomeIcon from "../../assets/home.svg";
@@ -44,6 +45,7 @@ const Menu: React.FC<MenuProps> = ({ defaultOpen = false }) => {
   const [animationCompleted, setAnimationCompleted] = useState(false);
   const [documentId, setDocumentId] = useState('');
   const [isCreating, setIsCreating] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
 
   useEffect(() => {
     if (router.isReady) {
@@ -174,6 +176,7 @@ const Menu: React.FC<MenuProps> = ({ defaultOpen = false }) => {
       return;
     }
 
+    setIsUploading(true);
     const formData = new FormData();
     formData.append("file", selectedFile);
 
@@ -198,6 +201,8 @@ const Menu: React.FC<MenuProps> = ({ defaultOpen = false }) => {
       }
     } catch (error) {
       console.error("Error uploading file:", error);
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -253,36 +258,43 @@ const Menu: React.FC<MenuProps> = ({ defaultOpen = false }) => {
             {isNewDocModalOpen && (
               <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-600 bg-opacity-50">
                 <div className="relative rounded bg-white p-5">
-                  <h2 className="text-lg">Create New Document</h2>
-                  <input
-                    type="text"
-                    placeholder="Document Title"
-                    value={newDocTitle}
-                    onChange={(e) => setNewDocTitle(e.target.value)}
-                    className="mt-2 w-full rounded border p-2"
-                  />
-                  <textarea
-                    placeholder="Document Content"
-                    value={newDocText}
-                    onChange={(e) => setNewDocText(e.target.value)}
-                    className="mt-2 w-full rounded border p-2"
-                    rows={4}
-                  />
-                  <div className="mt-4 flex justify-end">
-                    <button
-                      onClick={() => setIsNewDocModalOpen(false)}
-                      className="mr-2 rounded bg-gray-300 px-4 py-2 text-black"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      onClick={createNewDocument}
-                      className="rounded bg-blue-500 px-4 py-2 text-white"
-                      disabled={isCreating}
-                    >
-                      {isCreating ? "Creating..." : "Create"}
-                    </button>
-                  </div>
+                  {isCreating ? (
+                    <div className="flex flex-col items-center justify-center p-8">
+                      <Spinner />
+                      <p className="mt-4 text-lg text-gray-700">Processing...</p>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="mb-2 flex items-center justify-between">
+                        <h2 className="text-lg">Create New Document</h2>
+                        <button
+                          onClick={() => setIsNewDocModalOpen(false)}
+                          className="text-gray-500 hover:text-gray-700"
+                        >
+                          <Image src={CloseIcon as StaticImageData} alt="Close" width={32} height={32} />
+                        </button>
+                      </div>
+                      <input
+                        type="text"
+                        placeholder="Document Title"
+                        value={newDocTitle}
+                        onChange={(e) => setNewDocTitle(e.target.value)}
+                        className="mb-2 w-full rounded border p-2"
+                      />
+                      <textarea
+                        placeholder="Document Content"
+                        value={newDocText}
+                        onChange={(e) => setNewDocText(e.target.value)}
+                        className="mb-2 h-40 w-full rounded border p-2"
+                      />
+                      <button
+                        onClick={createNewDocument}
+                        className="w-full rounded bg-blue-500 p-2 text-white"
+                      >
+                        Create
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
             )}
@@ -313,28 +325,37 @@ const Menu: React.FC<MenuProps> = ({ defaultOpen = false }) => {
             {isUploadModalOpen && (
               <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-600 bg-opacity-50">
                 <div className="relative rounded bg-white p-5">
-                  <div className="mb-2 flex items-center justify-between">
-                    <h2 className="text-lg">Upload File</h2>
-                    <button
-                      onClick={() => setIsUploadModalOpen(false)}
-                      className="text-gray-500 hover:text-gray-700"
-                    >
-                      <Image src={CloseIcon as StaticImageData} alt="Close" width={32} height={32} />
-                    </button>
-                  </div>
-                  <input
-                    type="file"
-                    name="pdf"
-                    accept=".pdf"
-                    onChange={handleFileChange}
-                    className={styles.fileInput}
-                  />
-                  <button
-                    onClick={uploadFile}
-                    className="mt-2 rounded bg-blue-500 px-4 py-2 text-white"
-                  >
-                    Upload
-                  </button>
+                  {isUploading ? (
+                    <div className="flex flex-col items-center justify-center p-8">
+                      <Spinner />
+                      <p className="mt-4 text-lg text-gray-700">Processing PDF...</p>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="mb-2 flex items-center justify-between">
+                        <h2 className="text-lg">Upload File</h2>
+                        <button
+                          onClick={() => setIsUploadModalOpen(false)}
+                          className="text-gray-500 hover:text-gray-700"
+                        >
+                          <Image src={CloseIcon as StaticImageData} alt="Close" width={32} height={32} />
+                        </button>
+                      </div>
+                      <input
+                        type="file"
+                        name="pdf"
+                        accept=".pdf"
+                        onChange={handleFileChange}
+                        className={styles.fileInput}
+                      />
+                      <button
+                        onClick={uploadFile}
+                        className="mt-2 rounded bg-blue-500 px-4 py-2 text-white"
+                      >
+                        Upload
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
             )}
