@@ -40,7 +40,7 @@ export default function LoginForm() {
 
         if (response.data.access_token) {
           storeTokens(response.data);
-          await new Promise(resolve => setTimeout(resolve, 1000));
+          await new Promise(resolve => setTimeout(resolve, 10000));
           void router.push("/docs");
         } else {
           console.error("No access token received");
@@ -67,7 +67,7 @@ export default function LoginForm() {
 
       if (res.data.access_token) {
         storeTokens(res.data);
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise(resolve => setTimeout(resolve, 10000));
         void router.push("/docs");
       } else {
         console.error("No access token received");
@@ -89,7 +89,7 @@ export default function LoginForm() {
     <div className="flex h-screen flex-col items-center space-y-42 bg-white pb-150 pl-42 pr-42 pt-[100px]">
       {isLoading ? (
         <div className="flex h-full items-center justify-center">
-          <Spinner duration={5000} onComplete={() => setIsLoading(false)} />
+          <Spinner duration={10000} onComplete={() => setIsLoading(false)} />
         </div>
       ) : (
         <>
