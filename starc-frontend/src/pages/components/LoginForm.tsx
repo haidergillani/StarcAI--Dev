@@ -89,7 +89,7 @@ export default function LoginForm() {
     <div className="flex h-screen flex-col items-center space-y-42 bg-white pb-150 pl-42 pr-42 pt-[100px]">
       {isLoading ? (
         <div className="flex h-full items-center justify-center">
-          <Spinner duration={5000} onComplete={() => setIsLoading(false)} />
+          <Spinner duration={10000} onComplete={() => setIsLoading(false)} />
         </div>
       ) : (
         <>
