@@ -40,7 +40,7 @@ export default function LoginForm() {
 
         if (response.data.access_token) {
           storeTokens(response.data);
-          await new Promise(resolve => setTimeout(resolve, 1000));
+          await new Promise(resolve => setTimeout(resolve, 10000));
           void router.push("/docs");
         } else {
           console.error("No access token received");
@@ -67,7 +67,7 @@ export default function LoginForm() {
 
       if (res.data.access_token) {
         storeTokens(res.data);
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise(resolve => setTimeout(resolve, 10000));
         void router.push("/docs");
       } else {
         console.error("No access token received");
