@@ -12,7 +12,7 @@ Text Chunk allows flexibility incase subsections of a text need to be rewritten
 
 from datetime import datetime
 from sqlalchemy import Column, Integer, String, Text, Float, DateTime, ForeignKey, Boolean, Index
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, backref
 from .database import Base
 from werkzeug.security import generate_password_hash, check_password_hash
 
@@ -60,6 +60,8 @@ class Document(Base):
     user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
     word_count = Column(Integer, default=0, nullable=False)
     text_chunks = relationship('TextChunks', backref='document', lazy=True, cascade="all, delete-orphan")
+    history = relationship('DocumentHistory', backref='document', lazy=True, cascade="all, delete-orphan")
+    suggestions = relationship("Suggestion", back_populates="document", cascade="all, delete-orphan")
 
 # Store a complete piece of text associated with each doc. By segregating docs and its text, we can allow for rewrite and scoring process for a subsection of an entire docs text is an extension feature than rewriting the entire doc.
 class TextChunks(Base):
@@ -74,9 +76,20 @@ class TextChunks(Base):
     id = Column(Integer, primary_key=True, index=True)
     input_text_chunk = Column(Text, nullable=False)
     rewritten_text = Column(Text, nullable=False)
-    document_id = Column(Integer, ForeignKey('documents.id'), nullable=False)
+    document_id = Column(Integer, ForeignKey('documents.id', ondelete='CASCADE'), nullable=False)
     initial_score = relationship('InitialScore', backref='text_chunk', uselist=False, cascade="all, delete-orphan")
     final_score = relationship('FinalScore', backref='text_chunk', uselist=False, cascade="all, delete-orphan")
+
+class DocumentHistory(Base):
+    __tablename__ = 'document_history'
+    __table_args__ = (
+        Index('idx_doc_history', 'document_id', 'created_at'),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    document_id = Column(Integer, ForeignKey('documents.id', ondelete='CASCADE'), nullable=False)
+    content = Column(Text, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
 
 # Store scores for original text.
 class InitialScore(Base):
@@ -91,7 +104,7 @@ class InitialScore(Base):
     optimism = Column(Float, nullable=False)
     forecast = Column(Float, nullable=False)
     confidence = Column(Float, nullable=False)
-    text_chunk_id = Column(Integer, ForeignKey('text_chunks.id'), nullable=False)
+    text_chunk_id = Column(Integer, ForeignKey('text_chunks.id', ondelete='CASCADE'), nullable=False)
 
 # Store scores for rewritten text.
 class FinalScore(Base):
@@ -106,7 +119,7 @@ class FinalScore(Base):
     optimism = Column(Float, nullable=False)
     forecast = Column(Float, nullable=False)
     confidence = Column(Float, nullable=False)
-    text_chunk_id = Column(Integer, ForeignKey('text_chunks.id'), nullable=False)
+    text_chunk_id = Column(Integer, ForeignKey('text_chunks.id', ondelete='CASCADE'), nullable=False)
 
 class Suggestion(Base):
     __tablename__ = "suggestions"
@@ -116,10 +129,8 @@ class Suggestion(Base):
     )
 
     id = Column(Integer, primary_key=True, index=True)
-    document_id = Column(Integer, ForeignKey("documents.id"))
+    document_id = Column(Integer, ForeignKey("documents.id", ondelete='CASCADE'))
     input_text_chunk = Column(String)
     rewritten_text = Column(String)
 
     document = relationship("Document", back_populates="suggestions")
-
-Document.suggestions = relationship("Suggestion", order_by=Suggestion.id, back_populates="document")
