@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 
 interface ContentProps {
   onSave: () => void;
@@ -13,6 +13,8 @@ const Content = ({ onSave, onUpdateText, text, setText, title }: ContentProps) =
   const [charCount, setCharCount] = useState(0);
   const [countType, setCountType] = useState("word");
   const [dropdownVisible, setDropdownVisible] = useState(false);
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const updateCounts = (text: string) => {
     if (text) {
@@ -26,15 +28,36 @@ const Content = ({ onSave, onUpdateText, text, setText, title }: ContentProps) =
     }
   };
 
+  const handleSave = useCallback(() => {
+    onSave();
+    setLastSaved(new Date());
+  }, [onSave]);
+
   const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newText = e.target.value;
     setText(newText);
     updateCounts(newText);
     onUpdateText(newText);
+
+    // Clear existing timer
+    if (autoSaveTimerRef.current) {
+      clearTimeout(autoSaveTimerRef.current);
+    }
+
+    // Set new timer for auto-save
+    autoSaveTimerRef.current = setTimeout(() => {
+      handleSave();
+    }, 30000); // 30 seconds
   };
 
   useEffect(() => {
     updateCounts(text);
+    return () => {
+      // Cleanup timer on unmount
+      if (autoSaveTimerRef.current) {
+        clearTimeout(autoSaveTimerRef.current);
+      }
+    };
   }, [text]);
 
   return (
@@ -47,6 +70,19 @@ const Content = ({ onSave, onUpdateText, text, setText, title }: ContentProps) =
         autoFocus
       />
       <div className="flex items-center justify-between p-4">
+        <div className="flex items-center space-x-4">
+          <button
+            onClick={handleSave}
+            className="rounded-md bg-indigo-800 px-4 py-2 text-white hover:bg-indigo-700"
+          >
+            Save
+          </button>
+          {lastSaved && (
+            <span className="text-sm text-gray-500">
+              Last saved: {lastSaved.toLocaleTimeString()}
+            </span>
+          )}
+        </div>
         <div className="ml-auto">
           <div
             className="relative cursor-pointer rounded-lg p-2 text-gray-500 hover:bg-gray-200"

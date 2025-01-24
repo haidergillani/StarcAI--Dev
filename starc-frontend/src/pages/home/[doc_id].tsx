@@ -61,57 +61,71 @@ const DocumentPage: React.FC = () => {
     }, 1000)
   ).current;
 
-  useEffect(() => {
-    if (!router.isReady) return;
-    
-    // Only try to use initial data once
-    if (initialDoc && initialScores && !hasSetInitialData.current) {
-      try {
-        console.log("Using initial data from navigation");
-        setDocumentData({
-          document: JSON.parse(initialDoc as string) as DocumentData,
-          scores: JSON.parse(initialScores as string) as ScoreData
-        });
-        setIsLoading(false);
-        hasSetInitialData.current = true;
-        return;
-      } catch (error) {
-        console.error("Error parsing initial data:", error);
+  const handleSaveHistory = useCallback(async () => {
+    const authToken = localStorage.getItem('authToken') ?? '';
+    if (documentData?.document && doc_id) {
+      const docId = Array.isArray(doc_id) ? doc_id[0] : doc_id;
+      if (typeof docId === 'string') {
+        try {
+          await axios.post(
+            `${API_URL}/docs/${docId}/history`,
+            { content: documentData.document.text_chunk },
+            { headers: { Authorization: `Bearer ${authToken}` } }
+          );
+        } catch (error) {
+          console.error('Error saving document history:', error);
+        }
       }
     }
+  }, [API_URL, doc_id, documentData?.document]);
 
-    // Only fetch if we haven't set initial data
-    if (doc_id && !hasSetInitialData.current) {
-      console.log("No initial data, fetching fresh data");
+  useEffect(() => {
+    if (router.isReady && doc_id && !hasSetInitialData.current) {
+      const authToken = localStorage.getItem('authToken');
+      if (!authToken) {
+        void router.push('/login');
+        return;
+      }
+
       const fetchData = async () => {
-        const authToken = localStorage.getItem('authToken') ?? '';
         try {
-          const docId = Array.isArray(doc_id) ? doc_id[0] : doc_id;
-          
-          const [docResponse, scoresResponse] = await Promise.all([
-            axios.get<DocumentData>(`${API_URL}/docs/${docId}`, {
-              headers: { Authorization: `Bearer ${authToken}` },
-            }),
-            axios.get<ScoreData[]>(`${API_URL}/docs/scores/${docId}`, {
-              headers: { Authorization: `Bearer ${authToken}` },
-            })
-          ]);
+          if (initialDoc && initialScores) {
+            const parsedDoc = JSON.parse(initialDoc as string) as DocumentData;
+            const parsedScores = JSON.parse(initialScores as string) as ScoreData;
+            setDocumentData({
+              document: parsedDoc,
+              scores: parsedScores
+            });
+          } else {
+            const docId = Array.isArray(doc_id) ? doc_id[0] : doc_id;
+            const [docResponse, scoresResponse] = await Promise.all([
+              axios.get<DocumentData>(`${API_URL}/docs/${docId}`, {
+                headers: { Authorization: `Bearer ${authToken}` }
+              }),
+              axios.get<ScoreData[]>(`${API_URL}/docs/scores/${docId}`, {
+                headers: { Authorization: `Bearer ${authToken}` }
+              })
+            ]);
 
-          setDocumentData({
-            document: docResponse.data,
-            scores: scoresResponse.data[0] ?? null
-          });
-          
-          localStorage.setItem('openDocId', String(docResponse.data.id));
-          setIsLoading(false);
+            const document: DocumentData = docResponse.data;
+            const scores: ScoreData | null = scoresResponse.data[0] ?? null;
+
+            setDocumentData({
+              document,
+              scores
+            });
+          }
+          hasSetInitialData.current = true;
         } catch (error) {
-          console.error('Error fetching data:', error);
+          console.error('Error fetching document data:', error);
+        } finally {
           setIsLoading(false);
         }
       };
+
       void fetchData();
     }
-  }, [router.isReady, doc_id, initialDoc, initialScores, API_URL]);
+  }, [router.isReady, doc_id, initialDoc, initialScores, API_URL, router]);
 
   const handleUpdateDocument = useCallback(
     (newText: string) => {
@@ -137,6 +151,7 @@ const DocumentPage: React.FC = () => {
         initialDocument={documentData?.document} 
         initialScores={documentData?.scores}
         onUpdateDocument={handleUpdateDocument}
+        onSave={handleSaveHistory}
       />
     </div>
   );

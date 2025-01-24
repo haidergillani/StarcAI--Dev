@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from fastapi_jwt_auth import AuthJWT
 from sqlalchemy.orm import Session
-from api_project.models import Document, TextChunks, InitialScore, FinalScore
+from api_project.models import Document, TextChunks, InitialScore, FinalScore, DocumentHistory
 from api_project.database import get_db
 from api_project.processing import get_scoresSA, get_rewrite, chat_bot, ensure_model_warm
-from api_project.schemas import DocumentCreate, DocumentResponse, PDFUploadResponse, ChatBotRequest, ChatBotResponse,SaveRewriteRequest
+from api_project.schemas import DocumentCreate, DocumentResponse, PDFUploadResponse, ChatBotRequest, ChatBotResponse,SaveRewriteRequest, DocumentHistoryCreate, DocumentHistoryResponse
 from pypdf import PdfReader
 from fastapi.responses import StreamingResponse
 from reportlab.pdfgen import canvas
@@ -13,6 +13,7 @@ from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph, Frame
 import io
 import logging
+from typing import List
 
 documents_router = APIRouter()
 
@@ -280,6 +281,37 @@ def save_rewrite(doc_id: int, request: SaveRewriteRequest, Authorize: AuthJWT = 
     db.commit()
 
     return {"message": "Rewritten text saved successfully"}
+
+@documents_router.post("/{doc_id}/history", response_model=DocumentHistoryResponse)
+def save_document_history(doc_id: int, history: DocumentHistoryCreate, Authorize: AuthJWT = Depends(), db: Session = Depends(get_db)):
+    Authorize.jwt_required()
+    user_id = Authorize.get_jwt_subject()
+
+    document = db.query(Document).filter_by(id=doc_id, user_id=user_id).first()
+    if not document:
+        raise HTTPException(status_code=404, detail="Document not found or access denied")
+
+    new_history = DocumentHistory(
+        document_id=doc_id,
+        content=history.content
+    )
+    db.add(new_history)
+    db.commit()
+    db.refresh(new_history)
+
+    return new_history
+
+@documents_router.get("/{doc_id}/history", response_model=List[DocumentHistoryResponse])
+def get_document_history(doc_id: int, Authorize: AuthJWT = Depends(), db: Session = Depends(get_db)):
+    Authorize.jwt_required()
+    user_id = Authorize.get_jwt_subject()
+
+    document = db.query(Document).filter_by(id=doc_id, user_id=user_id).first()
+    if not document:
+        raise HTTPException(status_code=404, detail="Document not found or access denied")
+
+    history = db.query(DocumentHistory).filter_by(document_id=doc_id).order_by(DocumentHistory.created_at.desc()).all()
+    return history
 
 @documents_router.get("/warmup", response_model=dict)
 async def warmup_endpoint(Authorize: AuthJWT = Depends()):
