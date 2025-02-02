@@ -44,6 +44,18 @@ interface Scores {
   "Confidence": number;
 }
 
+interface TooltipContent {
+  "Strategic Forecast": string;
+  "Optimism": string;
+  "Confidence": string;
+}
+
+const tooltipContent: TooltipContent = {
+  "Strategic Forecast": "Indicates the potential future outcomes and strategic implications of the content",
+  "Optimism": "Measures the positive outlook and constructive tone of the content",
+  "Confidence": "Reflects the certainty and reliability of the statements made"
+};
+
 const ScoreContainer = forwardRef<ScoreContainerRef, ScoreContainerProps>((props, ref) => {
   const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://127.0.0.1:2000';
   const [scores, setScores] = useState<Record<string, number>>({});
@@ -160,13 +172,18 @@ const ScoreContainer = forwardRef<ScoreContainerRef, ScoreContainerProps>((props
                 />
               </div>
             ) : (
-              <Image 
-                src={getScoreIcon(key as keyof Scores)} 
-                alt={`${key} icon`} 
-                width={38} 
-                height={38} 
-                className="mr-4 mt-4" 
-              />
+              <div className="relative group">
+                <Image 
+                  src={getScoreIcon(key as keyof Scores)} 
+                  alt={`${key} icon`} 
+                  width={38} 
+                  height={38} 
+                  className="mr-4 mt-4" 
+                />
+                <div className="absolute left-0 -bottom-1 hidden group-hover:block bg-gray-800 text-white text-sm rounded px-2 py-1 w-48 z-10">
+                  {tooltipContent[key as keyof TooltipContent]}
+                </div>
+              </div>
             )}
             <div className="flex flex-col w-full">
               <div className="flex justify-between">
