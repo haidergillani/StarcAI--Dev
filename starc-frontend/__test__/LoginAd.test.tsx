@@ -1,45 +1,19 @@
-import "@testing-library/jest-dom";
+import React from "react";
 import { render, screen } from "@testing-library/react";
-import LoginAdvertisement from "~/pages/components/LoginAdvertisement";
+import LoginAdvertisement from "../src/pages/components/LoginAdvertisement";
+import "@testing-library/jest-dom";
 
 describe("LoginAdvertisement", () => {
-  it("renders without crashing", () => {
+  it("renders the login image", () => {
     render(<LoginAdvertisement />);
-    expect(
-      screen.getByText("Take control of your narrative."),
-    ).toBeInTheDocument();
+    const image = screen.getByAltText("logo");
+    expect(image).toBeInTheDocument();
+    expect(image).toHaveClass("h-full w-full");
   });
 
-  it("renders the video", () => {
+  it("renders with correct container styling", () => {
     render(<LoginAdvertisement />);
-    const videoElement = screen.getByText(
-      "Your browser does not support the video tag.",
-    );
-    expect(videoElement).toBeInTheDocument();
+    const container = screen.getByAltText("logo").parentElement;
+    expect(container).toHaveClass("h-full w-full");
   });
-});
-
-describe("LoginAdvertisement", () => {
-  it("renders the logo", () => {
-    render(<LoginAdvertisement />);
-    const logoElement = screen.getByAltText("logo");
-    expect(logoElement).toBeInTheDocument();
-  });
-});
-
-describe("LoginAdvertisement", () => {
-  it("renders the video with correct attributes", () => {
-    render(<LoginAdvertisement />);
-    const parentElement = screen.getByText(
-      "Your browser does not support the video tag.",
-    ).parentElement;
-    if (parentElement && parentElement.firstChild) {
-      const videoElement = parentElement.firstChild as HTMLVideoElement;
-      expect(videoElement.muted).toBe(true);
-      expect(videoElement.loop).toBe(true);
-      expect(videoElement.autoplay).toBe(true);
-    } else {
-      throw new Error("Video element not found");
-    }
-  });
-});
+}); 

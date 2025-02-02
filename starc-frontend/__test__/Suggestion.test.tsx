@@ -1,41 +1,46 @@
 import React from 'react';
-import { fireEvent, render } from '@testing-library/react';
+import { fireEvent, render, waitFor } from '@testing-library/react';
 import Suggestion from '../src/pages/components/Suggestion';
 import axios from 'axios';
+import '@testing-library/jest-dom';
 
 jest.mock('axios');
 const mockedAxios = axios as jest.Mocked<typeof axios>;
+
+// Mock localStorage
+const mockLocalStorage = {
+  getItem: jest.fn(),
+};
+Object.defineProperty(window, 'localStorage', {
+  value: mockLocalStorage
+});
 
 // Mock the environment variable
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://127.0.0.1:2000';
 
 interface SuggestionType {
   id: number;
-  type: string;
-  content: string;
   document_id: number;
-  input_text_chunk: string;
   rewritten_text: string;
 }
 
 describe('Suggestion Component', () => {
   const mockSuggestion: SuggestionType = {
     id: 1,
-    type: 'confidence',
-    content: 'Test content',
     document_id: 123,
-    input_text_chunk: 'Original text',
-    rewritten_text: 'Rewritten text'
+    rewritten_text: 'Rewritten text for better confidence'
   };
 
   const mockOnSuggestionUpdate = jest.fn();
   const mockSetText = jest.fn();
+  const mockAuthToken = 'mock-auth-token';
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockLocalStorage.getItem.mockReturnValue(mockAuthToken);
   });
 
-  it('renders suggestion with content and type', () => {
+  it('renders suggestion with rewritten text', () => {
     const { getByText } = render(
       <Suggestion 
         suggestion={mockSuggestion} 
@@ -43,11 +48,10 @@ describe('Suggestion Component', () => {
         setText={mockSetText}
       />
     );
-    expect(getByText(/Test content/i)).toBeInTheDocument();
-    expect(getByText(/improve your confidence score/i)).toBeInTheDocument();
+    expect(getByText(/Rewritten text for better confidence/i)).toBeInTheDocument();
   });
 
-  it('calls delete API when delete button is clicked', async () => {
+  it('calls delete API with auth token when delete button is clicked', async () => {
     const { getByAltText } = render(
       <Suggestion 
         suggestion={mockSuggestion} 
@@ -59,11 +63,23 @@ describe('Suggestion Component', () => {
 
     fireEvent.click(deleteButton);
 
-    expect(mockedAxios.delete).toHaveBeenCalledWith(`${API_URL}/fix/123/1`);
-    expect(mockOnSuggestionUpdate).toHaveBeenCalled();
+    await waitFor(() => {
+      expect(mockedAxios.delete).toHaveBeenCalledWith(
+        `${API_URL}/fix/${mockSuggestion.document_id}/suggestions/${mockSuggestion.id}`,
+        {
+          headers: { Authorization: `Bearer ${mockAuthToken}` }
+        }
+      );
+      expect(mockOnSuggestionUpdate).toHaveBeenCalled();
+    });
   });
 
-  it('calls update API when rephrase button is clicked', async () => {
+  it('calls update API with auth token when apply button is clicked', async () => {
+    const mockResponse = {
+      data: { updated_text: 'Updated document text' }
+    };
+    mockedAxios.put.mockResolvedValueOnce(mockResponse);
+
     const { getByText } = render(
       <Suggestion 
         suggestion={mockSuggestion} 
@@ -71,11 +87,42 @@ describe('Suggestion Component', () => {
         setText={mockSetText}
       />
     );
-    const rephraseButton = getByText(/Rephrase/i);
+    const applyButton = getByText(/Apply/i);
 
-    fireEvent.click(rephraseButton);
+    fireEvent.click(applyButton);
 
-    expect(mockedAxios.put).toHaveBeenCalledWith(`${API_URL}/fix/123/1`);
-    expect(mockOnSuggestionUpdate).toHaveBeenCalled();
+    await waitFor(() => {
+      expect(mockedAxios.put).toHaveBeenCalledWith(
+        `${API_URL}/fix/${mockSuggestion.document_id}/suggestions/${mockSuggestion.id}`,
+        {},
+        {
+          headers: { Authorization: `Bearer ${mockAuthToken}` }
+        }
+      );
+      expect(mockSetText).toHaveBeenCalledWith('Updated document text');
+    });
+  });
+
+  it('handles API errors gracefully', async () => {
+    const consoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
+    mockedAxios.put.mockRejectedValueOnce(new Error('API Error'));
+
+    const { getByText } = render(
+      <Suggestion 
+        suggestion={mockSuggestion} 
+        onSuggestionUpdate={mockOnSuggestionUpdate}
+        setText={mockSetText}
+      />
+    );
+    const applyButton = getByText(/Apply/i);
+
+    fireEvent.click(applyButton);
+
+    await waitFor(() => {
+      expect(consoleError).toHaveBeenCalled();
+      expect(mockSetText).not.toHaveBeenCalled();
+    });
+
+    consoleError.mockRestore();
   });
 });
