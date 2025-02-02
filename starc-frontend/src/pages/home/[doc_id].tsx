@@ -31,6 +31,11 @@ interface PutResponse {
   final_scores: ScoreData;
 }
 
+interface ScoreContainerRef {
+  setIsLoading: (isLoading: boolean) => void;
+  updateScores: (scores: ScoreData) => void;
+}
+
 const DocumentPage: React.FC = () => {
   const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://127.0.0.1:2000';
   const router = useRouter();
@@ -41,22 +46,25 @@ const DocumentPage: React.FC = () => {
   
   // Create stable debounced function
   const debouncedUpdate = useRef(
-    debounce(async (text: string, docId: string, authToken: string, title: string) => {
+    debounce(async (text: string, docId: string, authToken: string, title: string, scoreContainerRef: React.RefObject<ScoreContainerRef>) => {
       try {
+        if (scoreContainerRef.current) {
+          scoreContainerRef.current.setIsLoading(true);
+        }
         const response = await axios.put<PutResponse>(
           `${API_URL}/docs/${docId}`,
           { text, title },
           { headers: { Authorization: `Bearer ${authToken}` } }
         );
         
-        if (response.data.final_scores) {
-          setDocumentData(prevData => ({
-            document: prevData?.document ?? null,
-            scores: response.data.final_scores
-          }));
+        if (response.data.final_scores && scoreContainerRef.current) {
+          scoreContainerRef.current.updateScores(response.data.final_scores);
         }
       } catch (error) {
         console.error('Error in debounced update:', error);
+        if (scoreContainerRef.current) {
+          scoreContainerRef.current.setIsLoading(false);
+        }
       }
     }, 1000)
   ).current;
@@ -128,12 +136,12 @@ const DocumentPage: React.FC = () => {
   }, [router.isReady, doc_id, initialDoc, initialScores, API_URL, router]);
 
   const handleUpdateDocument = useCallback(
-    (newText: string) => {
+    (newText: string, scoreContainerRef: React.MutableRefObject<ScoreContainerRef | null>) => {
       const authToken = localStorage.getItem('authToken') ?? '';
       if (documentData?.document && doc_id) {
         const docId = Array.isArray(doc_id) ? doc_id[0] : doc_id;
         if (typeof docId === 'string') {
-          void debouncedUpdate(newText, docId, authToken, documentData.document.title);
+          void debouncedUpdate(newText, docId, authToken, documentData.document.title, scoreContainerRef);
         }
       }
     },
