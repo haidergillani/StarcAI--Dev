@@ -2,38 +2,51 @@
 
 import React from "react";
 import { fireEvent, render, screen } from "@testing-library/react";
-import NoContent from "~/pages/components/Custom404";
+import NoContent from "../src/pages/components/Custom404";
 import "@testing-library/jest-dom";
 
+const mockBack = jest.fn();
 jest.mock("next/router", () => ({
-  useRouter() {
-    return {
-      back: jest.fn(),
-    };
-  },
+  useRouter: () => ({
+    back: mockBack,
+  }),
 }));
 
 describe("Custom404", () => {
-  it("renders the 404 message", () => {
+  beforeEach(() => {
+    mockBack.mockClear();
+  });
+
+  it("renders the 404 message and content", () => {
     render(<NoContent />);
     expect(screen.getByText("Oops!")).toBeInTheDocument();
     expect(screen.getByText("What are you doing here?")).toBeInTheDocument();
-    const textElement = screen.getByText(
-      /Now go back to making your pitch perfect!/i,
-    );
-    expect(textElement).toBeInTheDocument();
+    
+    // Test for text content that's split across multiple elements
+    const container = screen.getByText(/future/, { exact: false }).closest('.w-380');
+    expect(container).toHaveTextContent(/This page is a future functionality not in the scope of this assignment/);
+    expect(container).toHaveTextContent(/Now go back to making your pitch perfect!/);
   });
 
-  it("renders the 404 image", () => {
+  it("renders the images correctly", () => {
     render(<NoContent />);
-    expect(screen.getByAltText("404")).toBeInTheDocument();
+    const oopsImage = screen.getByAltText("404");
+    const backArrow = screen.getByAltText("back");
+    
+    expect(oopsImage).toBeInTheDocument();
+    expect(backArrow).toBeInTheDocument();
+    expect(oopsImage).toHaveAttribute("width", "500");
+    expect(oopsImage).toHaveAttribute("height", "500");
+    expect(backArrow).toHaveAttribute("width", "24");
+    expect(backArrow).toHaveAttribute("height", "24");
   });
 
-  it('navigates back when "Go Back" is clicked', () => {
-    const { getByText } = render(<NoContent />);
-    const goBackButton = getByText("Go Back");
+  it('navigates back when "Go Back" button is clicked', () => {
+    render(<NoContent />);
+    const goBackButton = screen.getByText("Go Back");
+    
     fireEvent.click(goBackButton);
-    expect(screen.getByAltText("back")).toBeInTheDocument(); // Checks if the back arrow image is in the document, indicating the presence of the back button
+    expect(mockBack).toHaveBeenCalled();
   });
 });
 	
