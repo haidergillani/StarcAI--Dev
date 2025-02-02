@@ -31,6 +31,9 @@ const SuggestionsContainer = forwardRef<HTMLDivElement, SuggestionsContainerProp
       if (documentId && currentPrompt) {
         const authToken = localStorage.getItem("authToken");
         try {
+          if (scoreContainerRef.current) {
+            scoreContainerRef.current.setIsLoading(true);
+          }
           const response = await axios.post<RewriteResponse>(
             `${API_URL}/fix/${documentId}/rewrite`,
             { prompt: currentPrompt },
@@ -46,6 +49,7 @@ const SuggestionsContainer = forwardRef<HTMLDivElement, SuggestionsContainerProp
 
             if (response.data.scores && scoreContainerRef.current) {
               scoreContainerRef.current.updateScores(response.data.scores);
+              scoreContainerRef.current.setIsLoading(false);
             }
 
             await axios.post(
@@ -60,6 +64,9 @@ const SuggestionsContainer = forwardRef<HTMLDivElement, SuggestionsContainerProp
           }
         } catch (error) {
           console.error("Error rewriting text:", error);
+          if (scoreContainerRef.current) {
+            scoreContainerRef.current.setIsLoading(false);
+          }
         }
       }
     };

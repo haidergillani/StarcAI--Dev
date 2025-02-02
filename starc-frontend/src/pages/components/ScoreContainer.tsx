@@ -16,6 +16,7 @@ export interface ScoreContainerRef {
     forecast: number;
     confidence: number;
   }) => void;
+  setIsLoading: (loading: boolean) => void;
 }
 
 interface ScoreContainerProps {
@@ -48,27 +49,18 @@ const ScoreContainer = forwardRef<ScoreContainerRef, ScoreContainerProps>((props
   const [scores, setScores] = useState<Record<string, number>>({});
   const [overallScore, setOverallScore] = useState(0);
   const [showPopup, setShowPopup] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
-
-  // Debug incoming props
-  useEffect(() => {
-    console.log('ScoreContainer received props:', props.initialScores);
-  }, [props.initialScores]);
-
-  // Debug state updates
-  useEffect(() => {
-    console.log('ScoreContainer state:', { scores, overallScore });
-  }, [scores, overallScore]);
 
   useEffect(() => {
     if (props.initialScores) {
-      console.log('Updating scores from props:', props.initialScores);
       setScores({
         "Strategic Forecast": props.initialScores.forecast,
         "Optimism": props.initialScores.optimism,
         "Confidence": props.initialScores.confidence
       });
       setOverallScore(props.initialScores.score);
+      setIsLoading(false);
     }
   }, [props.initialScores]);
 
@@ -83,6 +75,7 @@ const ScoreContainer = forwardRef<ScoreContainerRef, ScoreContainerProps>((props
 
     if (docId) {
       console.log("Fetching scores after typing stopped");
+      setIsLoading(true);
       axios.get<ScoreResponse[]>(`${API_URL}/docs/scores/${docId}`, {
         headers: { 'Authorization': `Bearer ${authToken ?? ''}` }
       })
@@ -96,9 +89,11 @@ const ScoreContainer = forwardRef<ScoreContainerRef, ScoreContainerProps>((props
           });
           setOverallScore(scoreData.score);
         }
+        setIsLoading(false);
       })
       .catch(error => {
         console.error('There was an error fetching the scores!', error);
+        setIsLoading(false);
       });
     }
   }, [router.asPath, API_URL]);
@@ -110,7 +105,6 @@ const ScoreContainer = forwardRef<ScoreContainerRef, ScoreContainerProps>((props
     confidence: number;
   }) => {
     if (Array.isArray(scores)) {
-      // Handle rewrite response format [overall, optimism, strategic_forecast, confidence]
       setScores({
         "Strategic Forecast": scores[2] ?? 0,
         "Optimism": scores[1] ?? 0,
@@ -118,7 +112,6 @@ const ScoreContainer = forwardRef<ScoreContainerRef, ScoreContainerProps>((props
       });
       setOverallScore(scores[0] ?? 0);
     } else {
-      // Handle document update response format
       setScores({
         "Strategic Forecast": scores.forecast ?? 0,
         "Optimism": scores.optimism ?? 0,
@@ -126,6 +119,7 @@ const ScoreContainer = forwardRef<ScoreContainerRef, ScoreContainerProps>((props
       });
       setOverallScore(scores.score ?? 0);
     }
+    setIsLoading(false);
   }, []);
 
   const getScoreIcon = (key: keyof Scores): StaticImageData => {
@@ -143,7 +137,8 @@ const ScoreContainer = forwardRef<ScoreContainerRef, ScoreContainerProps>((props
 
   useImperativeHandle(ref, () => ({
     fetchScores,
-    updateScores
+    updateScores,
+    setIsLoading
   }));
 
   return (
@@ -155,13 +150,24 @@ const ScoreContainer = forwardRef<ScoreContainerRef, ScoreContainerProps>((props
       {Object.entries(scores).map(([key, value]) => (
         <div key={key} className="w-full mb-4">
           <div className="flex items-center">
-            <Image 
-              src={getScoreIcon(key as keyof Scores)} 
-              alt={`${key} icon`} 
-              width={38} 
-              height={38} 
-              className="mr-4 mt-4" 
-            />
+            {isLoading ? (
+              <div className="mr-4 mt-4 w-[38px] h-[38px]">
+                <div 
+                  className="animate-spin rounded-full w-[38px] h-[38px] border-4" 
+                  style={{ 
+                    borderColor: `${key === 'Optimism' ? '#454F63' : key === 'Confidence' ? '#71063D' : '#117F6A'} transparent transparent transparent`
+                  }}
+                />
+              </div>
+            ) : (
+              <Image 
+                src={getScoreIcon(key as keyof Scores)} 
+                alt={`${key} icon`} 
+                width={38} 
+                height={38} 
+                className="mr-4 mt-4" 
+              />
+            )}
             <div className="flex flex-col w-full">
               <div className="flex justify-between">
                 <div className="flex mb-2">

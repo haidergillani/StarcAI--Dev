@@ -17,7 +17,7 @@ interface HomeBodyProps {
     forecast: number;
     confidence: number;
   } | null;
-  onUpdateDocument?: (newText: string) => void;
+  onUpdateDocument?: (newText: string, scoreContainerRef: React.MutableRefObject<ScoreContainerRef | null>) => void;
   onSave?: () => void;
 }
 
@@ -36,7 +36,10 @@ const HomeBody: React.FC<HomeBodyProps> = ({
 
   const handleUpdateText = useCallback((newText: string) => {
     setText(newText);
-    onUpdateDocument?.(newText);
+    if (scoreContainerRef.current) {
+      scoreContainerRef.current.setIsLoading(true);
+    }
+    onUpdateDocument?.(newText, scoreContainerRef);
   }, [onUpdateDocument]);
 
   const handleSave = useCallback(() => {
@@ -48,7 +51,7 @@ const HomeBody: React.FC<HomeBodyProps> = ({
 
   const handleRestoreVersion = useCallback((content: string) => {
     setText(content);
-    onUpdateDocument?.(content);
+    onUpdateDocument?.(content, scoreContainerRef);
     setShowHistory(false);
   }, [onUpdateDocument]);
 
