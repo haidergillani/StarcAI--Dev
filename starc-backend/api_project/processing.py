@@ -6,6 +6,8 @@ from openai import OpenAI
 from dotenv import load_dotenv
 import time
 from urllib.parse import urlencode
+import asyncio
+from datetime import datetime
 
 load_dotenv()
 
@@ -13,6 +15,89 @@ client = OpenAI(api_key= os.getenv('StarcAI_API_KEY'))
 
 # Google API Key for function calls
 gc_virtual_api_key = os.environ.get("GOOGLE_CLOUD_API_KEY")
+
+class WarmupManager:
+    def __init__(self):
+        self.MAX_INSTANCES = 5
+        self.WARMUP_INTERVAL = 600  # 5 minutes (300 seconds)
+        self.last_activity_time = 0  # Track any GCF activity
+        self.lock = asyncio.Lock()
+
+    def update_activity_time(self):
+        """Update the last activity time to now"""
+        self.last_activity_time = time.time()
+
+    async def validate_response(self, response):
+        """Validate response format and content"""
+        if response.status != 200:
+            print(f"Failed warmup - status code: {response.status}")
+            return False
+
+        try:
+            # Try to parse the response as JSON regardless of content-type
+            content = await response.text()
+            data = json.loads(content)
+            
+            # Validate expected response structure
+            if not isinstance(data, dict) or 'tone' not in data or 'fls' not in data:
+                print(f"Failed warmup - invalid response structure: {data}")
+                return False
+                
+            return True
+        except Exception as e:
+            print(f"Failed warmup - JSON parsing error: {str(e)}")
+            return False
+
+    async def warmup_instance(self):
+        """Single instance warmup request with proper validation"""
+        base_url = 'https://us-central1-starcai-server.cloudfunctions.net/FinBERT-Merged'
+        params = {'apikey': gc_virtual_api_key}
+        url_SA = f'{base_url}?{urlencode(params)}'
+        
+        headers = {
+            'Content-Type': 'application/json',
+        }
+        
+        try:
+            async with aiohttp.ClientSession() as session:
+                payload = {"text": "test"}
+                async with session.post(url_SA, json=payload, headers=headers) as response:
+                    if await self.validate_response(response):
+                        content = await response.text()
+                        return json.loads(content)
+                    return None
+        except Exception as e:
+            print(f"Warmup request failed with error: {str(e)}")
+            return None
+
+    async def warmup_all_instances(self):
+        """Warm up instances with proper validation and debugging"""
+        async with self.lock:
+            current_time = time.time()
+            
+            if current_time - self.last_activity_time < self.WARMUP_INTERVAL:
+                print(f"Skipping warmup - last activity was {current_time - self.last_activity_time} seconds ago")
+                return True
+
+            print(f"Starting warmup of {self.MAX_INSTANCES} instances at {datetime.now()}")
+            
+            warmup_tasks = [self.warmup_instance() for _ in range(self.MAX_INSTANCES)]
+            results = await asyncio.gather(*warmup_tasks, return_exceptions=True)
+            
+            # Count only valid responses
+            successful_warmups = sum(1 for r in results if r is not None and not isinstance(r, Exception))
+            
+            print(f"Warmup completed: {successful_warmups}/{self.MAX_INSTANCES} instances warmed successfully")
+            
+            if successful_warmups > 0:
+                self.last_activity_time = current_time
+                return True
+            else:
+                print("All warmups failed - check response validation logs above")
+                return False
+
+# Global warmup manager instance
+warmup_manager = WarmupManager()
 
 def rewrite_text_with_prompt(original_text: str, prompt: str):
     '''
@@ -73,79 +158,121 @@ async def get_scoresSA(text):
     
     # Simple sentence splitting
     sentences = [s.strip() for s in text.split('.') if s.strip()]
+    
+    if not sentences:
+        return [0.33, 0.33, 0.34, 0.33]
+
+    # Try to warm up instances, but proceed even if warmup fails
+    warmup_success = await warmup_manager.warmup_all_instances()
+    if not warmup_success:
+        print("Warning: Proceeding with scoring despite warmup failure")
+    
     all_sentence_scores = []
     
-    try:
+    # Process sentences in chunks
+    for i in range(0, len(sentences), warmup_manager.MAX_INSTANCES):
+        chunk = sentences[i:min(i + warmup_manager.MAX_INSTANCES, len(sentences))]
+        num_real = len(chunk)
+        
         async with aiohttp.ClientSession() as session:
-            # Get scores for each sentence
-            for sentence in sentences:
+            # Prepare exactly MAX_INSTANCES requests (real + filler)
+            chunk_tasks = []
+            
+            # Add real sentence requests
+            for sentence in chunk:
                 payload = {"text": sentence}
-                async with session.post(url_SA, json=payload, headers=headers) as response:
+                task = session.post(url_SA, json=payload, headers=headers)
+                chunk_tasks.append(task)
+            
+            # Add filler requests to maintain constant load
+            num_fillers = warmup_manager.MAX_INSTANCES - num_real
+            for _ in range(num_fillers):
+                filler_payload = {"text": "test filler"}
+                task = session.post(url_SA, json=filler_payload, headers=headers)
+                chunk_tasks.append(task)
+            
+            # Wait for ALL requests (real + filler) to complete
+            chunk_responses = await asyncio.gather(*chunk_tasks, return_exceptions=True)
+            
+            # Process only the real responses
+            for response in chunk_responses[:num_real]:
+                try:
+                    if isinstance(response, Exception):
+                        raise response
+                    
                     if response.status != 200:
+                        print(f"Error: Non-200 status code: {response.status}")
                         continue
                     
-                    scores = json.loads(await response.text())
+                    content = await response.text()
+                    scores = json.loads(content)
                     all_sentence_scores.append(scores)
+                except Exception as e:
+                    print(f"Error processing sentence: {str(e)}")
+                    continue
             
-            if not all_sentence_scores:
-                return [0.33, 0.33, 0.34, 0.33]  # Default values
+            # Update activity time after processing chunk
+            warmup_manager.update_activity_time()
             
-            # Calculate aggregated scores across all sentences
-            sum_positives = sum(s['tone']['Positive'] for s in all_sentence_scores)
-            sum_neutrals = sum(s['tone']['Neutral'] for s in all_sentence_scores)
-            sum_negatives = sum(s['tone']['Negative'] for s in all_sentence_scores)
-            sum_specific_fls = sum(s['fls']['Specific FLS'] for s in all_sentence_scores)
-            sum_non_specific_fls = sum(s['fls']['Non-specific FLS'] for s in all_sentence_scores)
-            sum_not_fls = sum(s['fls']['Not FLS'] for s in all_sentence_scores)
-            
-            # Weights for overall score calculation
-            weights = {
-                'Positive': 1.0,
-                'Neutral': 0.7,
-                'Negative': 0.0,
-                'Specific FLS': 1.0,
-                'Non-specific FLS': 0.0,
-                'Not FLS': 1.0
-            }
-            
-            # Calculate overall score for each sentence and take average
-            max_score = 2.0  # Sum of max weights
-            sentence_scores = []
-            
-            for scores in all_sentence_scores:
-                score = (
-                    sum(weights[k] * v for k, v in scores['tone'].items()) +
-                    sum(weights[k] * v for k, v in scores['fls'].items())
-                ) / max_score * 100
-                sentence_scores.append(score)
-            
-            overall_score = sum(sentence_scores) / len(sentence_scores)
-            
-            # Calculate optimism = (Positive) / (Positive + Negative) * 100
-            total_pos_neg = sum_positives + sum_negatives
-            optimism = (sum_positives / total_pos_neg * 100) if total_pos_neg > 0 else 50
-            
-            # Calculate confidence = (Positive + Neutral) / (Positive + Negative + Neutral) * 100
-            total_tone = sum_positives + sum_negatives + sum_neutrals
-            confidence = ((sum_positives + sum_neutrals) / total_tone * 100) if total_tone > 0 else 50
-            
-            # Calculate specific FLS = Specific FLS / (Specific FLS + Non-specific FLS) * 100
-            total_fls = sum_specific_fls + sum_non_specific_fls
-            specific_fls = (sum_specific_fls / total_fls * 100) if total_fls > 0 else 0
-            
-            # Truncate to 2 decimal places
-            final_scores = [
-                int(overall_score * 100) / 100,
-                int(optimism * 100) / 100,
-                int(confidence * 100) / 100,
-                int(specific_fls * 100) / 100
-            ]
-            
-            return final_scores
-                
-    except Exception as e:
-        print(f"Exception in get_scoresSA: {str(e)}")
-        return [0.33, 0.33, 0.34, 0.33]  # Default values in case of error
+            # Small delay between chunks if more to process
+            if i + warmup_manager.MAX_INSTANCES < len(sentences):
+                await asyncio.sleep(1)
+    
+    if not all_sentence_scores:
+        return [0.33, 0.33, 0.34, 0.33]
+    
+    # Calculate aggregated scores across all sentences
+    sum_positives = sum(s['tone']['Positive'] for s in all_sentence_scores)
+    sum_neutrals = sum(s['tone']['Neutral'] for s in all_sentence_scores)
+    sum_negatives = sum(s['tone']['Negative'] for s in all_sentence_scores)
+    sum_specific_fls = sum(s['fls']['Specific FLS'] for s in all_sentence_scores)
+    sum_non_specific_fls = sum(s['fls']['Non-specific FLS'] for s in all_sentence_scores)
+    sum_not_fls = sum(s['fls']['Not FLS'] for s in all_sentence_scores)
+    
+    # Weights for overall score calculation
+    weights = {
+        'Positive': 1.0,
+        'Neutral': 0.7,
+        'Negative': 0.0,
+        'Specific FLS': 1.0,
+        'Non-specific FLS': 0.0,
+        'Not FLS': 1.0
+    }
+    
+    # Calculate overall score for each sentence and take average
+    max_score = 2.0  # Sum of max weights
+    sentence_scores = []
+    
+    for scores in all_sentence_scores:
+        score = (
+            sum(weights[k] * v for k, v in scores['tone'].items()) +
+            sum(weights[k] * v for k, v in scores['fls'].items())
+        ) / max_score * 100
+        sentence_scores.append(score)
+    
+    overall_score = sum(sentence_scores) / len(sentence_scores)
+    
+    # Calculate optimism = (Positive) / (Positive + Negative) * 100
+    total_pos_neg = sum_positives + sum_negatives
+    optimism = (sum_positives / total_pos_neg * 100) if total_pos_neg > 0 else 50
+    
+    # Calculate confidence = (Positive + Neutral) / (Positive + Negative + Neutral) * 100
+    total_tone = sum_positives + sum_negatives + sum_neutrals
+    confidence = ((sum_positives + sum_neutrals) / total_tone * 100) if total_tone > 0 else 50
+    
+    # Calculate specific FLS = Specific FLS / (Specific FLS + Non-specific FLS) * 100
+    total_fls = sum_specific_fls + sum_non_specific_fls
+    specific_fls = (sum_specific_fls / total_fls * 100) if total_fls > 0 else 0
+    
+    # Truncate to 2 decimal places
+    final_scores = [
+        int(overall_score * 100) / 100,
+        int(optimism * 100) / 100,
+        int(confidence * 100) / 100,
+        int(specific_fls * 100) / 100
+    ]
+    
+    return final_scores
 
 def get_rewriteGPT(original_text):
     '''
