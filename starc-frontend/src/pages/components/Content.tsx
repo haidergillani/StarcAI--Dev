@@ -5,10 +5,9 @@ interface ContentProps {
   onUpdateText: (text: string) => void;
   text: string;
   setText: (text: string) => void;
-  title: string;
 }
 
-const Content = ({ onSave, onUpdateText, text, setText, title }: ContentProps) => {
+const Content = ({ onSave, onUpdateText, text, setText }: ContentProps) => {
   const [wordCount, setWordCount] = useState(0);
   const [charCount, setCharCount] = useState(0);
   const [countType, setCountType] = useState("word");
@@ -61,11 +60,11 @@ const Content = ({ onSave, onUpdateText, text, setText, title }: ContentProps) =
   }, [text]);
 
   return (
-    <div className="flex h-full mt-[60px] rounded-lg flex-col bg-slate-50" style={{ overflowY: "hidden" }}>
+    <div className="flex h-full mt-[60px] rounded-lg flex-col bg-slate-50 dark:bg-gray-800" style={{ overflowY: "hidden" }}>
       <textarea
         value={text}
         onChange={handleTextChange}
-        className="flex-1 ml-[30px] bg-slate-50 mt-[10px] resize-none overflow-auto border-none py-2 pr-6 outline-none transition-all sm:text-sm md:text-base lg:text-lg"
+        className="flex-1 ml-[30px] bg-slate-50 dark:bg-gray-800 dark:text-gray-200 mt-[10px] resize-none overflow-auto border-none py-2 pr-6 outline-none transition-all sm:text-sm md:text-base lg:text-lg"
         placeholder="Type or paste your text here..."
         autoFocus
       />
@@ -78,24 +77,24 @@ const Content = ({ onSave, onUpdateText, text, setText, title }: ContentProps) =
             Save
           </button>
           {lastSaved && (
-            <span className="text-sm text-gray-500">
+            <span className="text-sm text-gray-500 dark:text-gray-400">
               Last saved: {lastSaved.toLocaleTimeString()}
             </span>
           )}
         </div>
         <div className="ml-auto">
           <div
-            className="relative cursor-pointer rounded-lg p-2 text-gray-500 hover:bg-gray-200"
+            className="relative cursor-pointer rounded-lg p-2 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700"
             onClick={() => setDropdownVisible(!dropdownVisible)}
           >
             {countType === "word"
               ? `${wordCount} words`
               : `${charCount} characters`}
             {dropdownVisible && (
-              <div className="absolute bottom-full right-0 mb-2 w-56 rounded-lg border border-gray-200 bg-white shadow-lg">
+              <div className="absolute bottom-full right-0 mb-2 w-56 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg">
                 <div className="p-4">
                   <p
-                    className="mb-2 cursor-pointer rounded-md p-2 hover:bg-gray-100"
+                    className="mb-2 cursor-pointer rounded-md p-2 hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-gray-200"
                     onClick={() => {
                       setCountType("word");
                       setDropdownVisible(false);
@@ -104,7 +103,7 @@ const Content = ({ onSave, onUpdateText, text, setText, title }: ContentProps) =
                     {wordCount} words
                   </p>
                   <p
-                    className="cursor-pointer rounded-md p-2 hover:bg-gray-100"
+                    className="cursor-pointer rounded-md p-2 hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-gray-200"
                     onClick={() => {
                       setCountType("character");
                       setDropdownVisible(false);

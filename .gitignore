@@ -45,3 +45,4 @@ $Recycle.Bin/
 $Recycle.Bin/
 $Recycle.Bin/
 venv/
+.pytest_cache/

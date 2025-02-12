@@ -48,39 +48,39 @@ const Chatbot = () => {
   };
 
   return (
-    <div className="flex flex-col mt-[25%] w-full p-4 bg-white shadow-lg rounded-lg">
+    <div className="flex flex-col mt-[25%] w-full p-4 bg-white dark:bg-gray-800 shadow-lg rounded-lg">
       <div className="flex items-center mb-4">
         <div className="w-3 h-3 bg-rose-950 rounded-full mr-2"></div>
-        <h1 className="text-lg font-light">Ask StarcAI – Financial Reporting Expert</h1>
+        <h1 className="text-lg font-light text-gray-800 dark:text-gray-200">Ask StarcAI – Financial Reporting Expert</h1>
       </div>
       <div className="flex-1 overflow-y-auto mb-4">
         {messages.map((msg, index) => (
-          <div key={index} className={`mb-4 ${msg.sender === "user" ? "bg-gray-100 text-center rounded-md" : "bg-white-100"}`}>
-            <div className={`inline-block p-2 rounded ${msg.sender === "user" ? "w-full bg-transparent text-center text-gray-800 text-lg font-semibold outline-none" : "w-full bg-transparent  text-center text-white-100 text-lg font-light outline-none"}`}>
+          <div key={index} className={`mb-4 ${msg.sender === "user" ? "bg-gray-100 dark:bg-gray-700 text-center rounded-md" : "bg-white-100"}`}>
+            <div className={`inline-block p-2 rounded ${msg.sender === "user" ? "w-full bg-transparent text-center text-gray-800 dark:text-gray-200 text-lg font-semibold outline-none" : "w-full bg-transparent text-center text-gray-800 dark:text-gray-200 text-lg font-light outline-none"}`}>
               {msg.text}
             </div>
           </div>
         ))}
         {loading && (
           <div className="text-left mb-2">
-            <div className="inline-block p-2 rounded bg-gray-300">
+            <div className="inline-block p-2 rounded bg-gray-300 dark:bg-gray-600">
               <div className="loader"></div>
             </div>
           </div>
         )}
       </div>
       <div className="flex justify-center items-center">
-        <div className="bg-gray-100 p-6 rounded-md w-[90%] max-w-lg">
+        <div className="bg-gray-100 dark:bg-gray-700 p-6 rounded-md w-[90%] max-w-lg">
           <input
             type="text"
-            className="w-full text-center bg-transparent text-gray-800 text-lg font-light outline-none"
+            className="w-full text-center bg-transparent text-gray-800 dark:text-gray-200 text-lg font-light outline-none"
             value={input}
             onChange={(e) => setInput(e.target.value)}
           />
         </div>
       </div>
       <div className="flex justify-center mt-4">
-        <button className="bg-indigo-800 text-white py-2 px-4 rounded-md font-semibold hover:bg-purple-800" onClick={handleSend}>
+        <button className="bg-indigo-800 text-white py-2 px-4 rounded-md font-semibold hover:bg-indigo-700" onClick={handleSend}>
           Enter
         </button>
       </div>
