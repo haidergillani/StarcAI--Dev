@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from fastapi_jwt_auth import AuthJWT
 from sqlalchemy.orm import Session
-from api_project.models import Document, TextChunks, InitialScore, FinalScore, DocumentHistory
+from api_project.models import Document, TextChunks, InitialScore, FinalScore, DocumentHistory, User
 from api_project.database import get_db
 from api_project.processing import get_scoresSA, get_rewrite, chat_bot, ensure_model_warm
 from api_project.schemas import DocumentCreate, DocumentResponse, PDFUploadResponse, ChatBotRequest, ChatBotResponse,SaveRewriteRequest, DocumentHistoryCreate, DocumentHistoryResponse
@@ -14,6 +14,7 @@ from reportlab.platypus import Paragraph, Frame
 import io
 import logging
 from typing import List
+from sqlalchemy import func
 
 documents_router = APIRouter()
 
@@ -324,3 +325,55 @@ async def warmup_endpoint(Authorize: AuthJWT = Depends()):
         return {"status": "success", "message": "Model warmed up successfully"}
     else:
         raise HTTPException(status_code=500, detail="Failed to warm up model")
+
+@documents_router.get("/user/stats")
+def get_user_stats(Authorize: AuthJWT = Depends(), db: Session = Depends(get_db)):
+    Authorize.jwt_required()
+    user_id = Authorize.get_jwt_subject()
+
+    # Get user info
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # Get total documents
+    total_documents = db.query(func.count(Document.id)).filter(Document.user_id == user_id).scalar()
+
+    # Get total rewrites by counting text chunks with different input and rewritten text
+    total_rewrites = db.query(func.count(TextChunks.id))\
+        .join(Document)\
+        .filter(
+            Document.user_id == user_id,
+            TextChunks.input_text_chunk != TextChunks.rewritten_text
+        ).scalar()
+
+    # Calculate time saved (20 mins per rewrite)
+    time_saved = total_rewrites * 20
+
+    # Get last activity timestamp from either document creation or history
+    last_doc = db.query(Document)\
+        .filter(Document.user_id == user_id)\
+        .order_by(Document.upload_date.desc())\
+        .first()
+    
+    last_history = db.query(DocumentHistory)\
+        .join(Document)\
+        .filter(Document.user_id == user_id)\
+        .order_by(DocumentHistory.created_at.desc())\
+        .first()
+
+    last_activity = None
+    if last_doc and last_history:
+        last_activity = max(last_doc.upload_date, last_history.created_at)
+    elif last_doc:
+        last_activity = last_doc.upload_date
+    elif last_history:
+        last_activity = last_history.created_at
+
+    return {
+        "email": user.email,
+        "totalDocuments": total_documents,
+        "totalRewrites": total_rewrites,
+        "timeSaved": time_saved,
+        "lastActivity": last_activity.isoformat() if last_activity else None
+    }

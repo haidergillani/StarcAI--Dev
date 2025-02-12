@@ -211,7 +211,7 @@ const Menu: React.FC<MenuProps> = ({ defaultOpen = false }) => {
       {!defaultOpen && (
         <button
           onClick={toggleMenu}
-          className="absolute left-0 top-0 z-30 mt-[20px] rounded-full p-2 transition duration-300 hover:bg-gray-200"
+          className="absolute left-0 top-0 z-30 mt-[20px] rounded-full p-2 transition duration-300 hover:bg-gray-200 dark:hover:bg-gray-700"
         >
           <div className="relative">
             {isOpen ? (
@@ -231,25 +231,25 @@ const Menu: React.FC<MenuProps> = ({ defaultOpen = false }) => {
         } ${!defaultOpen ? (defaultOpen ? "right-1/4" : "right-0") : ""}`}
         onTransitionEnd={onTransitionEnd}
       >
-        <div className="fixed inset-y-0 left-0 z-30 w-full max-w-xs overflow-y-auto border-r-2 border-gray-300 bg-white p-5">
+        <div className="fixed inset-y-0 left-0 z-30 w-full max-w-xs overflow-y-auto border-r-2 border-gray-300 bg-white dark:bg-gray-800 dark:border-gray-700 p-5">
           <nav className="flex flex-col space-y-5">
             <button
               onClick={() => navigateTo("/docs")}
-              className={`flex items-center space-x-2 rounded-md bg-white px-4 py-2 text-gray-800 transition-colors duration-200 hover:bg-gray-300 ${styles.menuItem}`}
+              className={`flex items-center space-x-2 rounded-md bg-white dark:bg-gray-800 px-4 py-2 text-gray-800 dark:text-gray-200 transition-colors duration-200 hover:bg-gray-300 dark:hover:bg-gray-700 ${styles.menuItem}`}
             >
               <Image src={HomeIcon as StaticImageData} alt="Home" width={24} height={24} />
               <span>Home</span>
             </button>
             <button
-              onClick={() => navigateTo("/not-found")}
-              className={`flex items-center space-x-2 rounded-md bg-white px-4 py-2 text-gray-800 transition-colors duration-200 hover:bg-gray-300 ${styles.menuItem}`}
+              onClick={() => navigateTo("/account")}
+              className={`flex items-center space-x-2 rounded-md bg-white dark:bg-gray-800 px-4 py-2 text-gray-800 dark:text-gray-200 transition-colors duration-200 hover:bg-gray-300 dark:hover:bg-gray-700 ${styles.menuItem}`}
             >
               <Image src={AccountIcon as StaticImageData} alt="Account" width={24} height={24} />
               <span>Account</span>
             </button>
             <button
-              onClick={() => navigateTo("/not-found")}
-              className={`flex items-center space-x-2 rounded-md bg-white px-4 py-2 text-gray-800 transition-colors duration-200 hover:bg-gray-300 ${styles.menuItem}`}
+              onClick={() => navigateTo("/settings")}
+              className={`flex items-center space-x-2 rounded-md bg-white dark:bg-gray-800 px-4 py-2 text-gray-800 dark:text-gray-200 transition-colors duration-200 hover:bg-gray-300 dark:hover:bg-gray-700 ${styles.menuItem}`}
             >
               <Image src={SettingsIcon as StaticImageData} alt="Settings" width={24} height={24} />
               <span>Settings</span>
@@ -301,14 +301,14 @@ const Menu: React.FC<MenuProps> = ({ defaultOpen = false }) => {
 
             <button
               onClick={() => setIsNewDocModalOpen(true)}
-              className={`flex items-center  space-x-2 rounded-md bg-white px-4 py-2 text-gray-800 transition-colors duration-200 hover:bg-gray-300 ${styles.menuItem}`}
+              className={`flex items-center space-x-2 rounded-md bg-white dark:bg-gray-800 px-4 py-2 text-gray-800 dark:text-gray-200 transition-colors duration-200 hover:bg-gray-300 dark:hover:bg-gray-700 ${styles.menuItem}`}
             >
               <Image src={DocumentIcon as StaticImageData} alt="New Document" width={24} height={24} />
               <span>New document</span>
             </button>
             <button
               onClick={() => setIsUploadModalOpen(true)}
-              className={`flex items-center space-x-2 rounded-md bg-gray-200 px-4 py-2 text-gray-800 transition-colors duration-200 hover:bg-gray-300 ${styles.menuItem}`}
+              className={`flex items-center space-x-2 rounded-md bg-gray-200 dark:bg-gray-700 px-4 py-2 text-gray-800 dark:text-gray-200 transition-colors duration-200 hover:bg-gray-300 dark:hover:bg-gray-600 ${styles.menuItem}`}
             >
               <Image src={UploadIcon as StaticImageData} alt="Upload" width={24} height={24} />
               <span>Upload</span>
@@ -316,7 +316,7 @@ const Menu: React.FC<MenuProps> = ({ defaultOpen = false }) => {
 
             <button
               onClick={() => documentId ? exportDocumentAsPdf() : console.warn('Document ID is undefined')}
-              className="flex items-center space-x-2 rounded-md bg-white px-4 py-2 text-gray-800 transition-colors duration-200 hover:bg-gray-300"
+              className="flex items-center space-x-2 rounded-md bg-white dark:bg-gray-800 px-4 py-2 text-gray-800 dark:text-gray-200 transition-colors duration-200 hover:bg-gray-300 dark:hover:bg-gray-700"
             >
               <Image src={DownloadIcon as StaticImageData} alt="Download" width={24} height={24} />
               <span>Download</span>
@@ -324,19 +324,19 @@ const Menu: React.FC<MenuProps> = ({ defaultOpen = false }) => {
 
             {isUploadModalOpen && (
               <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-600 bg-opacity-50">
-                <div className="relative rounded bg-white p-5">
+                <div className="relative rounded bg-white dark:bg-gray-800 p-5">
                   {isUploading ? (
                     <div className="flex flex-col items-center justify-center p-8">
                       <Spinner />
-                      <p className="mt-4 text-lg text-gray-700">Processing PDF...</p>
+                      <p className="mt-4 text-lg text-gray-700 dark:text-gray-300">Processing PDF...</p>
                     </div>
                   ) : (
                     <>
                       <div className="mb-2 flex items-center justify-between">
-                        <h2 className="text-lg">Upload File</h2>
+                        <h2 className="text-lg text-gray-800 dark:text-gray-200">Upload File</h2>
                         <button
                           onClick={() => setIsUploadModalOpen(false)}
-                          className="text-gray-500 hover:text-gray-700"
+                          className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
                         >
                           <Image src={CloseIcon as StaticImageData} alt="Close" width={32} height={32} />
                         </button>
@@ -350,7 +350,7 @@ const Menu: React.FC<MenuProps> = ({ defaultOpen = false }) => {
                       />
                       <button
                         onClick={uploadFile}
-                        className="mt-2 rounded bg-blue-500 px-4 py-2 text-white"
+                        className="mt-2 rounded bg-indigo-800 px-4 py-2 text-white hover:bg-indigo-700"
                       >
                         Upload
                       </button>
@@ -365,7 +365,7 @@ const Menu: React.FC<MenuProps> = ({ defaultOpen = false }) => {
       {animationCompleted && !defaultOpen && (
         <button
           onClick={toggleMenu}
-          className="absolute left-80 top-0 z-40 ml-6 rounded-full bg-white p-2 transition duration-300 hover:bg-gray-200"
+          className="absolute left-80 top-0 z-40 ml-6 rounded-full bg-white dark:bg-gray-800 p-2 transition duration-300 hover:bg-gray-200 dark:hover:bg-gray-700"
         >
           <Image src={CloseIcon as StaticImageData} alt="Close" width={32} height={32} />
         </button>

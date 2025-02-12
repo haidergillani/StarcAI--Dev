@@ -79,7 +79,6 @@ const HomeBody: React.FC<HomeBodyProps> = ({
           onUpdateText={handleUpdateText} 
           text={text} 
           setText={setText} 
-          title={title}
           onSave={handleSave}
         />
       </div>
