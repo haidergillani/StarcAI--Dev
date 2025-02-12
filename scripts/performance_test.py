@@ -25,7 +25,7 @@ async def measure_warmup():
     warmup_manager = WarmupManager()
     times = []
     
-    for i in range(5):
+    for i in range(1):
         print(f"\nAttempt {i+1}:")
         start = time.time()
         await warmup_manager.warmup_all_instances()
@@ -40,7 +40,7 @@ async def measure_warmup():
     print(f"\nAverage warmup: {avg:.2f}s")
     return avg
 
-async def measure_scoring_latency(sentences, num_sentences, runs=20):
+async def measure_scoring_latency(sentences, num_sentences, runs=30):
     """Time how long it takes to score N sentences"""
     full_sentences = sentences * ((num_sentences // len(sentences)) + 1)
     test_text = '. '.join(full_sentences[:num_sentences]) + '.'
@@ -76,7 +76,7 @@ async def run_performance_test():
     warmup_time = await measure_warmup()
     
     # Fine granularity to see parallelization effects clearly
-    counts = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25]
+    counts = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 22, 24, 25, 27, 29, 30]
     results = []
     
     print("\nTesting each count 5 times:")
