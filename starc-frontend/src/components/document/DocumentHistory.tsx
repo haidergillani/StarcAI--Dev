@@ -115,26 +115,26 @@ const DocumentHistory: React.FC<DocumentHistoryProps> = ({ documentId, onRestore
   }
 
   return (
-    <div className="bg-white rounded-lg shadow-lg p-4 max-h-[500px] overflow-y-auto">
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4 max-h-[500px] overflow-y-auto">
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-semibold">Document History</h2>
+        <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-200">Document History</h2>
         {selectedVersions.length === 2 && (
           <button
             onClick={() => setCompareMode(true)}
-            className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
+            className="px-3 py-1 bg-indigo-800 text-white rounded hover:bg-indigo-700"
           >
             Compare Selected
           </button>
         )}
       </div>
       {history.length === 0 && !currentContent ? (
-        <p className="text-gray-500 text-center">No history available</p>
+        <p className="text-gray-500 dark:text-gray-400 text-center">No history available</p>
       ) : (
         <div className="space-y-4">
           {currentContent && (
             <div 
-              className={`border rounded-lg p-4 hover:bg-gray-50 ${
-                selectedVersions.includes(-1) ? 'border-blue-500 bg-blue-50' : ''
+              className={`border dark:border-gray-700 rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-gray-700 ${
+                selectedVersions.includes(-1) ? 'border-blue-500 bg-blue-50 dark:bg-blue-900' : ''
               }`}
             >
               <div className="flex justify-between items-center mb-2">
@@ -143,14 +143,14 @@ const DocumentHistory: React.FC<DocumentHistoryProps> = ({ documentId, onRestore
                     type="checkbox"
                     checked={selectedVersions.includes(-1)}
                     onChange={() => handleVersionSelect(-1)}
-                    className="h-4 w-4 text-blue-600"
+                    className="h-4 w-4 text-indigo-600"
                   />
-                  <span className="text-sm text-gray-500 font-semibold">
+                  <span className="text-sm text-gray-500 dark:text-gray-400 font-semibold">
                     Current Version (Unsaved)
                   </span>
                 </div>
               </div>
-              <div className="text-sm text-gray-700 line-clamp-3">
+              <div className="text-sm text-gray-700 dark:text-gray-300 line-clamp-3">
                 {currentContent.slice(0, 200)}
                 {currentContent.length > 200 ? '...' : ''}
               </div>
@@ -159,8 +159,8 @@ const DocumentHistory: React.FC<DocumentHistoryProps> = ({ documentId, onRestore
           {history.map((entry) => (
             <div 
               key={entry.id} 
-              className={`border rounded-lg p-4 hover:bg-gray-50 ${
-                selectedVersions.includes(entry.id) ? 'border-blue-500 bg-blue-50' : ''
+              className={`border dark:border-gray-700 rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-gray-700 ${
+                selectedVersions.includes(entry.id) ? 'border-blue-500 bg-blue-50 dark:bg-blue-900' : ''
               }`}
             >
               <div className="flex justify-between items-center mb-2">
@@ -169,16 +169,16 @@ const DocumentHistory: React.FC<DocumentHistoryProps> = ({ documentId, onRestore
                     type="checkbox"
                     checked={selectedVersions.includes(entry.id)}
                     onChange={() => handleVersionSelect(entry.id)}
-                    className="h-4 w-4 text-blue-600"
+                    className="h-4 w-4 text-indigo-600"
                   />
-                  <span className="text-sm text-gray-500">
+                  <span className="text-sm text-gray-500 dark:text-gray-400">
                     {formatDate(entry.created_at)}
                   </span>
                 </div>
                 <div className="space-x-2">
                   <button
                     onClick={() => onOpen(entry.content)}
-                    className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                    className="text-indigo-600 hover:text-indigo-800 text-sm font-medium"
                   >
                     Open
                   </button>
@@ -190,7 +190,7 @@ const DocumentHistory: React.FC<DocumentHistoryProps> = ({ documentId, onRestore
                   </button>
                 </div>
               </div>
-              <div className="text-sm text-gray-700 line-clamp-3">
+              <div className="text-sm text-gray-700 dark:text-gray-300 line-clamp-3">
                 {entry.content.slice(0, 200)}
                 {entry.content.length > 200 ? '...' : ''}
               </div>

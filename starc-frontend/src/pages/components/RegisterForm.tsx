@@ -154,10 +154,10 @@ export default function RegisterForm() {
   };
 
   return (
-    <div className="flex h-screen flex-col items-center space-y-42 bg-white pb-150 pl-42 pr-42 pt-[30px]">
+    <div className="flex h-screen flex-col items-center space-y-42 bg-white dark:bg-gray-900 pb-150 pl-42 pr-42 pt-[30px]">
       <div className="flex flex-col items-center">
-        <div className="text-base font-normal text-black">WELCOME!</div>
-        <div className="text-lg_1 font-medium text-black">
+        <div className="text-base font-normal text-gray-800 dark:text-gray-200">WELCOME!</div>
+        <div className="text-lg_1 font-medium text-gray-800 dark:text-gray-200">
           Create a New Account
         </div>
       </div>
@@ -172,7 +172,7 @@ export default function RegisterForm() {
             placeholder="Username"
             value={username}
             onChange={handleInputChange}
-            className="w-380 rounded border bg-background p-16"
+            className="w-380 rounded border dark:border-gray-700 bg-background dark:bg-gray-700 p-16 text-gray-800 dark:text-gray-200 placeholder-gray-500 dark:placeholder-gray-400"
             required
           />
           {errors.username && (
@@ -187,7 +187,7 @@ export default function RegisterForm() {
             placeholder="Email"
             value={email}
             onChange={handleInputChange}
-            className="w-380 rounded border bg-background p-16"
+            className="w-380 rounded border dark:border-gray-700 bg-background dark:bg-gray-700 p-16 text-gray-800 dark:text-gray-200 placeholder-gray-500 dark:placeholder-gray-400"
             required
           />
           {errors.email && <div className="text-red-500">{errors.email}</div>}
@@ -200,7 +200,7 @@ export default function RegisterForm() {
             placeholder="Password"
             value={password}
             onChange={handleInputChange}
-            className="w-380 rounded border bg-background p-16"
+            className="w-380 rounded border dark:border-gray-700 bg-background dark:bg-gray-700 p-16 text-gray-800 dark:text-gray-200 placeholder-gray-500 dark:placeholder-gray-400"
             required
           />
           {errors.password && (
@@ -215,7 +215,7 @@ export default function RegisterForm() {
             placeholder="Confirm Password"
             value={confirmPassword}
             onChange={handleInputChange}
-            className="w-380 rounded border bg-background p-16"
+            className="w-380 rounded border dark:border-gray-700 bg-background dark:bg-gray-700 p-16 text-gray-800 dark:text-gray-200 placeholder-gray-500 dark:placeholder-gray-400"
             required
           />
           {errors.confirmPassword && (
@@ -226,16 +226,16 @@ export default function RegisterForm() {
           type="submit"
           disabled={!isFormValid()}
           onClick={handleSubmit}
-          className="w-380 rounded border bg-gray-70 p-16 text-sm_3 font-bold text-white"
+          className="w-380 rounded border bg-indigo-800 p-16 text-sm_3 font-bold text-white hover:bg-indigo-700 disabled:opacity-50"
         >
           CREATE ACCOUNT
         </button>
 
       </form>
       <div className="flex items-center my-4 w-full">
-        <div className="flex-grow border-t border-gray-300"></div>
-        <span className="mx-4 text-gray-500">or</span>
-        <div className="flex-grow border-t border-gray-300"></div>
+        <div className="flex-grow border-t border-gray-300 dark:border-gray-700"></div>
+        <span className="mx-4 text-gray-500 dark:text-gray-400">or</span>
+        <div className="flex-grow border-t border-gray-300 dark:border-gray-700"></div>
       </div>
       <div className="flex flex-col items-center space-y-4">
         <GoogleLogin
@@ -244,9 +244,9 @@ export default function RegisterForm() {
         />
       </div>
       {/* Navigate to login page */}
-      <div className="flex space-x-6 text-base text-black">
+      <div className="flex space-x-6 text-base text-gray-800 dark:text-gray-200">
         <div className="font-normal">Already have an account?</div>
-        <Link className="font-bold" href="/login">
+        <Link className="font-bold text-indigo-800 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300" href="/login">
           LOGIN
         </Link>
       </div>

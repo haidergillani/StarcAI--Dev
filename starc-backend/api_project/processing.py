@@ -18,7 +18,7 @@ gc_virtual_api_key = os.environ.get("GOOGLE_CLOUD_API_KEY")
 
 class WarmupManager:
     def __init__(self):
-        self.MAX_INSTANCES = 5
+        self.MAX_INSTANCES = 10
         self.WARMUP_INTERVAL = 600  # 5 minutes (300 seconds)
         self.last_activity_time = 0  # Track any GCF activity
         self.lock = asyncio.Lock()
@@ -55,7 +55,7 @@ class WarmupManager:
         url_SA = f'{base_url}?{urlencode(params)}'
         
         headers = {
-            'Content-Type': 'application/json',
+            'Content-Type': 'application/json'
         }
         
         try:
@@ -148,12 +148,14 @@ async def get_scoresSA(text):
     Get sentiment and FLS scores for the given text.
     Returns a list containing [overall_score, optimism, confidence, specific_fls].
     '''
-    base_url = 'https://us-central1-starcai-server.cloudfunctions.net/FinBERT-Merged'
+    base_url = 'https://finbert-merged-351460998552.us-central1.run.app'
     params = {'apikey': gc_virtual_api_key}
     url_SA = f'{base_url}?{urlencode(params)}'
     
     headers = {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Authorization': f'bearer {os.getenv("GOOGLE_CLOUD_TOKEN")}',
+        'X-Goog-Api-Key': gc_virtual_api_key
     }
     
     # Simple sentence splitting
@@ -169,18 +171,30 @@ async def get_scoresSA(text):
     
     all_sentence_scores = []
     
-    # Process sentences in chunks
-    for i in range(0, len(sentences), warmup_manager.MAX_INSTANCES):
-        chunk = sentences[i:min(i + warmup_manager.MAX_INSTANCES, len(sentences))]
-        num_real = len(chunk)
+    # Process sentences in chunks of up to 20 (10 instances * 2 sentences per instance)
+    for i in range(0, len(sentences), warmup_manager.MAX_INSTANCES * 2):
+        chunk = sentences[i:min(i + warmup_manager.MAX_INSTANCES * 2, len(sentences))]
+        
+        # Group sentences into pairs for each instance
+        sentence_pairs = []
+        for j in range(0, len(chunk), 2):
+            if j + 1 < len(chunk):
+                sentence_pairs.append(chunk[j:j+2])
+            else:
+                sentence_pairs.append([chunk[j]])
+        
+        num_real = len(sentence_pairs)
         
         async with aiohttp.ClientSession() as session:
             # Prepare exactly MAX_INSTANCES requests (real + filler)
             chunk_tasks = []
             
-            # Add real sentence requests
-            for sentence in chunk:
-                payload = {"text": sentence}
+            # Add real sentence pair requests
+            for pair in sentence_pairs:
+                if len(pair) == 2:
+                    payload = {"texts": pair}
+                else:
+                    payload = {"text": pair[0]}
                 task = session.post(url_SA, json=payload, headers=headers)
                 chunk_tasks.append(task)
             
@@ -206,17 +220,18 @@ async def get_scoresSA(text):
                     
                     content = await response.text()
                     scores = json.loads(content)
-                    all_sentence_scores.append(scores)
+                    
+                    # Handle both single and paired responses
+                    if isinstance(scores, list):
+                        all_sentence_scores.extend(scores)
+                    else:
+                        all_sentence_scores.append(scores)
                 except Exception as e:
                     print(f"Error processing sentence: {str(e)}")
                     continue
             
             # Update activity time after processing chunk
             warmup_manager.update_activity_time()
-            
-            # Small delay between chunks if more to process
-            if i + warmup_manager.MAX_INSTANCES < len(sentences):
-                await asyncio.sleep(1)
     
     if not all_sentence_scores:
         return [0.33, 0.33, 0.34, 0.33]
