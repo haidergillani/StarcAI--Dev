@@ -87,26 +87,8 @@ const Menu: React.FC<MenuProps> = ({ defaultOpen = false }) => {
         { headers: { Authorization: `Bearer ${authToken}` } }
       );
       
-      // Fetch both document and scores in parallel
-      const [docResponse, scoresResponse] = await Promise.all([
-        axios.get<DocumentResponse>(
-          `${API_URL}/docs/${response.data.id}`,
-          { headers: { Authorization: `Bearer ${authToken}` } }
-        ),
-        axios.get<ScoreResponse[]>(
-          `${API_URL}/docs/scores/${response.data.id}`,
-          { headers: { Authorization: `Bearer ${authToken}` } }
-        )
-      ]);
-      
-      // Navigate with complete data
-      await router.push({
-        pathname: `/home/${response.data.id}`,
-        query: { 
-          initialDoc: JSON.stringify(docResponse.data),
-          initialScores: JSON.stringify(scoresResponse.data[0])
-        }
-      });
+      // Navigate to the new document
+      await router.push(`/home/${response.data.id}`);
       setIsNewDocModalOpen(false);
     } catch (error) {
       console.error("Error creating document:", error);
@@ -257,19 +239,19 @@ const Menu: React.FC<MenuProps> = ({ defaultOpen = false }) => {
 
             {isNewDocModalOpen && (
               <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-600 bg-opacity-50">
-                <div className="relative rounded bg-white p-5">
+                <div className="relative rounded bg-white dark:bg-gray-800 p-5">
                   {isCreating ? (
                     <div className="flex flex-col items-center justify-center p-8">
                       <Spinner />
-                      <p className="mt-4 text-lg text-gray-700">Processing...</p>
+                      <p className="mt-4 text-lg text-gray-700 dark:text-gray-300">Processing...</p>
                     </div>
                   ) : (
                     <>
                       <div className="mb-2 flex items-center justify-between">
-                        <h2 className="text-lg">Create New Document</h2>
+                        <h2 className="text-lg text-gray-800 dark:text-gray-200">Create New Document</h2>
                         <button
                           onClick={() => setIsNewDocModalOpen(false)}
-                          className="text-gray-500 hover:text-gray-700"
+                          className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
                         >
                           <Image src={CloseIcon as StaticImageData} alt="Close" width={32} height={32} />
                         </button>
@@ -279,17 +261,17 @@ const Menu: React.FC<MenuProps> = ({ defaultOpen = false }) => {
                         placeholder="Document Title"
                         value={newDocTitle}
                         onChange={(e) => setNewDocTitle(e.target.value)}
-                        className="mb-2 w-full rounded border p-2"
+                        className="mb-2 w-full rounded border dark:border-gray-600 p-2 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200"
                       />
                       <textarea
                         placeholder="Document Content"
                         value={newDocText}
                         onChange={(e) => setNewDocText(e.target.value)}
-                        className="mb-2 h-40 w-full rounded border p-2"
+                        className="mb-2 h-40 w-full rounded border dark:border-gray-600 p-2 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200"
                       />
                       <button
                         onClick={createNewDocument}
-                        className="w-full rounded bg-blue-500 p-2 text-white"
+                        className="w-full rounded bg-indigo-800 p-2 text-white hover:bg-indigo-700"
                       >
                         Create
                       </button>

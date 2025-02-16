@@ -39,7 +39,7 @@ interface ScoreContainerRef {
 const DocumentPage: React.FC = () => {
   const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://127.0.0.1:2000';
   const router = useRouter();
-  const { doc_id, initialDoc, initialScores } = router.query;
+  const { doc_id } = router.query;
   const [isLoading, setIsLoading] = useState(true);
   const [documentData, setDocumentData] = useState<DocumentWithScores | null>(null);
   const hasSetInitialData = useRef(false);
@@ -97,32 +97,23 @@ const DocumentPage: React.FC = () => {
 
       const fetchData = async () => {
         try {
-          if (initialDoc && initialScores) {
-            const parsedDoc = JSON.parse(initialDoc as string) as DocumentData;
-            const parsedScores = JSON.parse(initialScores as string) as ScoreData;
-            setDocumentData({
-              document: parsedDoc,
-              scores: parsedScores
-            });
-          } else {
-            const docId = Array.isArray(doc_id) ? doc_id[0] : doc_id;
-            const [docResponse, scoresResponse] = await Promise.all([
-              axios.get<DocumentData>(`${API_URL}/docs/${docId}`, {
-                headers: { Authorization: `Bearer ${authToken}` }
-              }),
-              axios.get<ScoreData[]>(`${API_URL}/docs/scores/${docId}`, {
-                headers: { Authorization: `Bearer ${authToken}` }
-              })
-            ]);
+          const docId = Array.isArray(doc_id) ? doc_id[0] : doc_id;
+          const [docResponse, scoresResponse] = await Promise.all([
+            axios.get<DocumentData>(`${API_URL}/docs/${docId}`, {
+              headers: { Authorization: `Bearer ${authToken}` }
+            }),
+            axios.get<ScoreData[]>(`${API_URL}/docs/scores/${docId}`, {
+              headers: { Authorization: `Bearer ${authToken}` }
+            })
+          ]);
 
-            const document: DocumentData = docResponse.data;
-            const scores: ScoreData | null = scoresResponse.data[0] ?? null;
+          const document: DocumentData = docResponse.data;
+          const scores: ScoreData | null = scoresResponse.data[0] ?? null;
 
-            setDocumentData({
-              document,
-              scores
-            });
-          }
+          setDocumentData({
+            document,
+            scores
+          });
           hasSetInitialData.current = true;
         } catch (error) {
           console.error('Error fetching document data:', error);
@@ -133,7 +124,7 @@ const DocumentPage: React.FC = () => {
 
       void fetchData();
     }
-  }, [router.isReady, doc_id, initialDoc, initialScores, API_URL, router]);
+  }, [router.isReady, doc_id, API_URL, router]);
 
   const handleUpdateDocument = useCallback(
     (newText: string, scoreContainerRef: React.MutableRefObject<ScoreContainerRef | null>) => {

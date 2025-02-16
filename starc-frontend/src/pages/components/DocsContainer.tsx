@@ -2,7 +2,7 @@ import DocThumbnail from "./DocThumbnail";
 import SearchBar from "./SearchBar";
 import axios from "axios";
 import type { AxiosResponse, AxiosError } from "axios";
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useState, useCallback } from "react";
 import router from "next/router";
 
 interface Document {
@@ -59,7 +59,7 @@ export default function DocsContainer() {
     } catch (error) {
       console.error(error);
     }
-  }, []);
+  }, [API_URL]);
 
   const handleSearchComplete = useCallback((response: AxiosResponse<SearchResponse>) => {
     switch (response.status) {
@@ -119,37 +119,16 @@ export default function DocsContainer() {
     }
   }, [handleSearchComplete, API_URL]);
 
-  const handleDocClick = async (id: number) => {
+  const handleDocClick = useCallback(async (id: number) => {
     const authToken = localStorage.getItem("authToken");
     if (!authToken) {
       setError("No auth token found. Please log in.");
-      void router.push('/login');
+      await router.push('/login');
       return;
     }
 
-    try {
-      const [docResponse, scoresResponse] = await Promise.all([
-        axios.get<DocumentResponse>(`${API_URL}/docs/${id}`, {
-          headers: { Authorization: `Bearer ${authToken}` },
-        }),
-        axios.get<ScoreResponse[]>(`${API_URL}/docs/scores/${id}`, {
-          headers: { Authorization: `Bearer ${authToken}` },
-        })
-      ]);
-
-      await router.push({
-        pathname: `/home/${id}`,
-        query: {
-          initialDoc: JSON.stringify(docResponse.data),
-          initialScores: JSON.stringify(scoresResponse.data[0])
-        }
-      });
-    } catch (error) {
-      console.error("Error fetching document data:", error);
-      // Fallback to simple navigation if fetch fails
-      void router.push(`/home/${id}`);
-    }
-  };
+    await router.push(`/home/${id}`);
+  }, []);
 
   return (
     <div className="flex h-full flex-col space-y-24 pb-57 pl-116 pr-116 pt-57">
@@ -159,7 +138,7 @@ export default function DocsContainer() {
       </div>
       <div className="flex flex-wrap justify-start gap-x-37 gap-y-57 pt-42">
         {error && (
-          <div className="text-base font-normal text-black">{error}</div>
+          <div className="text-base font-normal text-black dark:text-gray-200">{error}</div>
         )}
         {documents.length > 0 &&
           documents.map((document: Document) => (

@@ -156,8 +156,8 @@ const ScoreContainer = forwardRef<ScoreContainerRef, ScoreContainerProps>((props
   return (
     <div className="flex flex-col items-center p-4 relative" onClick={showPopup ? closePopup : undefined}>
       <div className="overall-score-container flex items-center justify-between mb-10 w-full">
-        <span className="text-gray-700 text-[70px] font-bold">{overallScore}%</span>
-        <h2 className="text-2xl mt-[20px] mr-[180px]">Overall Score</h2>
+        <span className="text-gray-700 dark:text-gray-200 text-[70px] font-bold">{overallScore}%</span>
+        <h2 className="text-2xl mt-[20px] mr-[180px] text-gray-800 dark:text-gray-200">Overall Score</h2>
       </div>
       {Object.entries(scores).map(([key, value]) => (
         <div key={key} className="w-full mb-4">
@@ -180,7 +180,7 @@ const ScoreContainer = forwardRef<ScoreContainerRef, ScoreContainerProps>((props
                   height={38} 
                   className="mr-4 mt-4" 
                 />
-                <div className="absolute left-0 -bottom-1 hidden group-hover:block bg-gray-800 text-white text-sm rounded px-2 py-1 w-48 z-10">
+                <div className="absolute left-0 -bottom-1 hidden group-hover:block bg-gray-800 dark:bg-gray-700 text-white text-sm rounded px-2 py-1 w-48 z-10">
                   {tooltipContent[key as keyof TooltipContent]}
                 </div>
               </div>
@@ -188,11 +188,11 @@ const ScoreContainer = forwardRef<ScoreContainerRef, ScoreContainerProps>((props
             <div className="flex flex-col w-full">
               <div className="flex justify-between">
                 <div className="flex mb-2">
-                  <span className="text-[20px] font-bold text-black mr-4">{value}%</span>
-                  <span className="text-base text-black mt-2">{key}</span>
+                  <span className="text-[20px] font-bold text-gray-800 dark:text-gray-200 mr-4">{value}%</span>
+                  <span className="text-base text-gray-800 dark:text-gray-200 mt-2">{key}</span>
                 </div>
               </div>
-              <div className="w-full bg-gray-200 rounded-full h-2.5 mt-1">
+              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 mt-1">
                 <div 
                   className="h-2.5 rounded-full" 
                   style={{ 
@@ -206,8 +206,8 @@ const ScoreContainer = forwardRef<ScoreContainerRef, ScoreContainerProps>((props
         </div>
       ))}
       {showPopup && (
-        <div className="popup bg-white p-4 rounded shadow-lg border absolute z-10" onClick={(e) => e.stopPropagation()}>
-          <p>Score Information</p>
+        <div className="popup bg-white dark:bg-gray-800 p-4 rounded shadow-lg border dark:border-gray-700 absolute z-10" onClick={(e) => e.stopPropagation()}>
+          <p className="text-gray-800 dark:text-gray-200">Score Information</p>
         </div>
       )}
     </div>

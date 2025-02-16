@@ -62,11 +62,11 @@ const HomeBody: React.FC<HomeBodyProps> = ({
 
   return (
     <div className="flex w-screen h-screen overflow-x-hidden">
-      <div className="absolute ml-[80px] mt-[15px] text-[45px] text-gray-500 font-bold flex items-center space-x-4">
+      <div className="absolute ml-[80px] mt-[15px] text-[45px] text-gray-500 dark:text-gray-400 font-bold flex items-center space-x-4">
         <span>{title}</span>
         <button
           onClick={() => setShowHistory(!showHistory)}
-          className="text-sm bg-gray-100 hover:bg-gray-200 px-3 py-1 rounded-md"
+          className="text-sm bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 px-3 py-1 rounded-md text-gray-800 dark:text-gray-200"
         >
           {showHistory ? 'Hide History' : 'Show History'}
         </button>

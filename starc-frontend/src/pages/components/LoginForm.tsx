@@ -86,7 +86,7 @@ export default function LoginForm() {
   };
 
   return (
-    <div className="flex h-screen flex-col items-center space-y-42 bg-white pb-150 pl-42 pr-42 pt-[100px]">
+    <div className="flex h-screen flex-col items-center space-y-42 bg-white dark:bg-gray-900 pb-150 pl-42 pr-42 pt-[100px]">
       {isLoading ? (
         <div className="flex h-full items-center justify-center">
           <Spinner duration={10000} onComplete={() => setIsLoading(false)} />
@@ -94,8 +94,8 @@ export default function LoginForm() {
       ) : (
         <>
           <div className="flex flex-col items-center">
-            <div className="text-base font-normal text-black">WELCOME BACK</div>
-            <div className="text-lg_1 font-medium text-black">
+            <div className="text-base font-normal text-gray-800 dark:text-gray-200">WELCOME BACK</div>
+            <div className="text-lg_1 font-medium text-gray-800 dark:text-gray-200">
               Log In to Your Account
             </div>
           </div>
@@ -107,7 +107,7 @@ export default function LoginForm() {
               placeholder="Username or Email"
               value={loginIdentifier}
               onChange={handleInputChange}
-              className="w-380 rounded border bg-background p-16"
+              className="w-380 rounded border dark:border-gray-700 bg-background dark:bg-gray-700 p-16 text-gray-800 dark:text-gray-200 placeholder-gray-500 dark:placeholder-gray-400"
               required
             />
             <input
@@ -116,22 +116,22 @@ export default function LoginForm() {
               placeholder="Password"
               value={password}
               onChange={handleInputChange}
-              className="w-380 rounded border bg-background p-16"
+              className="w-380 rounded border dark:border-gray-700 bg-background dark:bg-gray-700 p-16 text-gray-800 dark:text-gray-200 placeholder-gray-500 dark:placeholder-gray-400"
               required
             />
             <button
               type="submit"
               disabled={!isFormValid()}
               onClick={handleSubmit}
-              className="w-380 rounded border bg-gray-70 p-16 text-sm_3 font-bold text-white"
+              className="w-380 rounded border bg-indigo-800 p-16 text-sm_3 font-bold text-white hover:bg-indigo-700 disabled:opacity-50"
             >
               CONTINUE
             </button>
           </form>
           <div className="flex items-center my-4 w-full">
-            <div className="flex-grow border-t border-gray-300"></div>
-            <span className="mx-4 text-gray-500">or</span>
-            <div className="flex-grow border-t border-gray-300"></div>
+            <div className="flex-grow border-t border-gray-300 dark:border-gray-700"></div>
+            <span className="mx-4 text-gray-500 dark:text-gray-400">or</span>
+            <div className="flex-grow border-t border-gray-300 dark:border-gray-700"></div>
           </div>
           <div className="flex flex-col items-center space-y-4">
             <GoogleLogin
@@ -139,9 +139,9 @@ export default function LoginForm() {
               onError={handleGoogleFailure}
             />
           </div>
-          <div className="flex space-x-6 text-base text-black">
+          <div className="flex space-x-6 text-base text-gray-800 dark:text-gray-200">
             <div className="font-normal">New User?</div>
-            <Link className="font-bold" href="/register">
+            <Link className="font-bold text-indigo-800 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300" href="/register">
               SIGN UP HERE
             </Link>
           </div>
