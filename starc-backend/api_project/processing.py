@@ -78,7 +78,11 @@ def generate_sentence_suggestions(text):
 
 def get_scoresSA(text):
     '''
-    Do NOT use this anywhere in code.
+    code for retrieving scores from the cloud function using the Sentiment Analysis model.
+    
+    
+    Order of scores = [overall, optimism, confidence, Strategic Forecasts]
+    Sample output = [81.81, 60.72, 66.66, 71.12]
     '''
     url_SA = f'https://us-central1-starcai.cloudfunctions.net/entry_pointSA?apikey={gc_virtual_api_key}'
     response_SA = requests.post(url_SA, json={'text': text})
@@ -89,7 +93,7 @@ def get_scoresSA(text):
 
 def get_scores(text):
     '''
-    Use this as the function, no change needed
+    Sample code for testing purposes.
     '''
     random_numbers = [random.uniform(1,100) for _ in range(4)]
     return random_numbers

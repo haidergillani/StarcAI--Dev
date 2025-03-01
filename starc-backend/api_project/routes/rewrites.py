@@ -258,8 +258,8 @@ def rewrite_text(document_id: int, rewrite_request: RewriteRequest, Authorize: A
     if final_score:
         final_score.score = rewritten_scores_data[0]
         final_score.optimism = rewritten_scores_data[1]
-        final_score.forecast = rewritten_scores_data[2]
-        final_score.confidence = rewritten_scores_data[3]
+        final_score.confidence = rewritten_scores_data[2]
+        final_score.forecast = rewritten_scores_data[3]
         db.commit()
 
     return {"message": "Text rewritten successfully", "rewritten_text": rewritten_text, "scores": rewritten_scores_data}

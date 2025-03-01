@@ -40,16 +40,16 @@ def process_document(user_id: int, title: str, text: str, db: Session):
         text_chunk_id=new_text_chunk.id,
         score=original_scores_data[0],
         optimism=original_scores_data[1],
-        forecast=original_scores_data[2],
-        confidence=original_scores_data[3],
+        confidence=original_scores_data[2],
+        forecast=original_scores_data[3],
     )
 
     final_score = FinalScore(
         text_chunk_id=new_text_chunk.id,
         score=rewritten_scores_data[0],
         optimism=rewritten_scores_data[1],
-        forecast=rewritten_scores_data[2],
-        confidence=rewritten_scores_data[3],
+        confidence=rewritten_scores_data[2],
+        forecast=rewritten_scores_data[3],
     )
 
     db.add(initial_score)
