@@ -1,6 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Query
 from fastapi_jwt_auth import AuthJWT
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from api_project.models import Document
 from api_project.database import get_db
 from api_project.schemas import DocumentResponse, SearchResponse
@@ -36,7 +37,8 @@ def search_documents(
     # If we have documents, perform the search
     query = db.query(Document).filter(Document.user_id == user_id)
     if q:  # Only apply title filter if search query exists
-        query = query.filter(Document.title.like(f'%{q}%'))
+        # Make the search case-insensitive by converting both sides to lowercase
+        query = query.filter(func.lower(Document.title).like(f'%{q.lower()}%'))
 
     total_count = query.count()
     if total_count == 0:

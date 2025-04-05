@@ -3,7 +3,7 @@ from fastapi_jwt_auth import AuthJWT
 from sqlalchemy.orm import Session
 from api_project.models import Document, TextChunks, InitialScore, FinalScore, DocumentHistory, User
 from api_project.database import get_db
-from api_project.processing import get_scoresSA, get_rewrite, chat_bot, ensure_model_warm
+from api_project.processing import get_scoresSA, chat_bot, ensure_model_warm
 from api_project.schemas import DocumentCreate, DocumentResponse, PDFUploadResponse, ChatBotRequest, ChatBotResponse,SaveRewriteRequest, DocumentHistoryCreate, DocumentHistoryResponse
 from pypdf import PdfReader
 from fastapi.responses import StreamingResponse
@@ -33,7 +33,7 @@ async def process_document(user_id: int, title: str, text: str, db: Session):
 
     new_text_chunk = TextChunks(document_id=new_document.id, input_text_chunk=text)
     original_scores_data = await get_scoresSA(text)
-    rewritten_text = get_rewrite(text)
+    rewritten_text = text
     rewritten_scores_data = await get_scoresSA(rewritten_text)
 
     new_text_chunk.rewritten_text = rewritten_text
@@ -137,7 +137,7 @@ async def update_document(doc_id: int, document: DocumentCreate, Authorize: Auth
         existing_text_chunk = db.query(TextChunks).filter_by(document_id=existing_document.id).first()
         if existing_text_chunk:
             existing_text_chunk.input_text_chunk = document.text
-            rewritten_text = get_rewrite(document.text)
+            rewritten_text = document.text
             existing_text_chunk.rewritten_text = rewritten_text
             db.commit()
             db.refresh(existing_text_chunk)
