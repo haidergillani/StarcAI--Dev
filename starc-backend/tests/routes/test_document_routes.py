@@ -16,7 +16,7 @@ def test_document(test_db, test_user):
     text_chunk = TextChunks(
         document_id=document.id,
         input_text_chunk="This is a test document.",
-        rewritten_text="This is a rewritten test document."
+        rewritten_text="This is a test document."
     )
     test_db.add(text_chunk)
     test_db.commit()
@@ -45,7 +45,6 @@ def test_document(test_db, test_user):
 @pytest.mark.asyncio
 async def test_create_document(client, test_tokens):
     with patch('api_project.routes.documents.get_scoresSA', return_value=[0.8, 0.7, 0.6, 0.9]), \
-         patch('api_project.routes.documents.get_rewrite', return_value="Rewritten text"), \
          patch('api_project.routes.documents.ensure_model_warm'):
         
         response = client.post(
@@ -74,7 +73,6 @@ async def test_upload_pdf(client, test_tokens):
     
     with patch('api_project.routes.documents.PdfReader') as mock_pdf_reader, \
          patch('api_project.routes.documents.get_scoresSA', return_value=[0.8, 0.7, 0.6, 0.9]), \
-         patch('api_project.routes.documents.get_rewrite', return_value="Rewritten text"), \
          patch('api_project.routes.documents.ensure_model_warm'):
         
         # Mock PDF reader behavior
@@ -109,8 +107,7 @@ def test_delete_nonexistent_document(client, test_tokens):
 
 @pytest.mark.asyncio
 async def test_update_document(client, test_tokens, test_document):
-    with patch('api_project.routes.documents.get_scoresSA', return_value=[0.8, 0.7, 0.6, 0.9]), \
-         patch('api_project.routes.documents.get_rewrite', return_value="Updated rewritten text"):
+    with patch('api_project.routes.documents.get_scoresSA', return_value=[0.8, 0.7, 0.6, 0.9]):
         
         response = client.put(
             f"/docs/{test_document.id}",
