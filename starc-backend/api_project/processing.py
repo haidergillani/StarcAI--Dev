@@ -19,7 +19,7 @@ gc_virtual_api_key = os.environ.get("GOOGLE_CLOUD_API_KEY")
 
 class WarmupManager:
     def __init__(self):
-        self.MAX_INSTANCES = 10
+        self.MAX_INSTANCES = 20
         self.WARMUP_INTERVAL = 600  # 5 minutes (300 seconds)
         self.last_activity_time = 0  # Track any GCF activity
         self.lock = asyncio.Lock()
@@ -162,7 +162,7 @@ def generate_sentence_suggestions(text):
         suggestions = []
     
     return suggestions
-
+  
 async def get_scoresSA(text):
     '''
     Get sentiment and FLS scores for the given text.
@@ -309,36 +309,6 @@ async def get_scoresSA(text):
     
     return final_scores
 
-def get_rewriteGPT(original_text):
-    '''
-    Get rewrite suggestions from the GPT endpoint.
-    '''
-    base_url = 'https://us-central1-starcai-server.cloudfunctions.net/FinBERT-Merged'
-    params = {'apikey': gc_virtual_api_key}
-    url_GPT = f'{base_url}?{urlencode(params)}'
-    
-    headers = {
-        'Content-Type': 'application/json'
-    }
-    
-    payload = {
-        "text": original_text
-    }
-    
-    try:
-        response = requests.post(url_GPT, json=payload, headers=headers)
-        if response.status_code != 200:
-            return None
-        return response
-    except Exception:
-        return None
-
-def get_rewrite(original_text):
-    '''
-    Use this as the function, no change needed
-    '''
-    response = "placeholder string"
-    return response
 
 def chat_bot(prompt, chat_log=None):
     if chat_log is None:
