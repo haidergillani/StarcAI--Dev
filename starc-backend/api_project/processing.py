@@ -2,6 +2,7 @@ import requests
 import json
 import os
 import aiohttp
+import openai
 from openai import OpenAI
 from dotenv import load_dotenv
 import time
@@ -99,16 +100,34 @@ class WarmupManager:
 # Global warmup manager instance
 warmup_manager = WarmupManager()
 
+# -------------------------------
+# SYSTEM PROMPT FOR CONVERSION
+# Gives context about the task and the style based on user's request
+# -------------------------------
+
+SYSTEM_PROMPT = (
+    "You are a financial analyst and investor relations expert, "
+    "specialized in writing MD&A sections for public 10-K filings, 10-Q reports, and letters to stakeholders. "
+    "Your task is to rewrite given MD&A sentences in a clear, professional business style that reflects the user's requested tone. "
+    "Ensure that the language is precise, and that the sentence structure is consistent with investor relations industry standards. "
+    "Refrain strongly from adding any new information from your side."
+    "Importantly, do not make it so overly optimistic that it becomes suspicious or hard to believe. Be grounded and realistic."
+    "Keep the overall context and number of sentences the same. Do not change any factual information or numbers if provided."
+    "Do not repeat back the user prompt or mention explicitly wording that makes you appear an AI bot like 'as an AI agent' or 'is there anything else I can assist you with' etc."
+)
 def rewrite_text_with_prompt(original_text: str, prompt: str):
     '''
     Rewrite the given text based on the provided prompt.
     '''
-    response = client.chat.completions.create(
-        model="gpt-3.5-turbo",
+
+    response = openai.ChatCompletion.create(
+        #model="gpt-3.5-turbo",
+        model="gpt-4o",
+        
         max_tokens=500,
-        temperature=0.7,
+        temperature=0.5,
         messages=[
-            {"role": "system", "content": "You are a helpful assistant."},
+            {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": f"Rewrite the following text to {prompt}: {original_text}"}
         ]
     )
@@ -116,10 +135,38 @@ def rewrite_text_with_prompt(original_text: str, prompt: str):
     rewritten_text = response.choices[0].message.content.strip()
     return rewritten_text
 
+def generate_sentence_suggestions(text):
+    '''
+    Generate sentence suggestions for the given text.
+    Not being used for now.
+    '''
+    response = client.chat.completions.create(
+        model="gpt-3.5-turbo",
+        max_tokens=500,
+        temperature=0.2,
+        response_format={ "type": "json_object" },
+        messages=[
+            {"role": "system", "content": """You are a writer. You are given a text and your job is to generate 
+             sentence-by-sentence suggestions. The suggestions should be in JSON format, with each entry containing 
+             'original' and 'suggested' keys, and all suggestions should be contained in an array."""},
+            {"role": "user", "content": text}
+        ]
+    )
+    
+    content = response.choices[0].message.content
+    
+    try:
+        suggestions_dict = json.loads(content)
+        suggestions = suggestions_dict.get("suggestions", [])
+    except json.JSONDecodeError:
+        suggestions = []
+    
+    return suggestions
+  
 async def get_scoresSA(text):
     '''
     Get sentiment and FLS scores for the given text.
-    Returns a list containing [overall_score, optimism, confidence, specific_fls].
+    Returns a list containing [overall_score, optimism, confidence, specific_fls (trustworthy)].
     '''
     base_url = 'https://finbert-merged-351460998552.us-central1.run.app'
     params = {'apikey': gc_virtual_api_key}
@@ -284,7 +331,7 @@ def chat_bot(prompt, chat_log=None):
     try:
         print("Sending the following chat log to OpenAI API:", chat_log)
         response = client.chat.completions.create(
-            model='gpt-3.5-turbo',
+            model='gpt-4o-mini',
             messages=chat_log
         )
         print("Received response from OpenAI API:", response)

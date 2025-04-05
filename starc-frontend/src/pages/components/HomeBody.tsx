@@ -1,7 +1,8 @@
 import React, { useState, useCallback, useRef } from 'react';
 import Content from './Content';
 import Sidebar from './Sidebar';
-import ScoreContainer, { ScoreContainerRef } from './ScoreContainer';
+import ScoreContainer from './ScoreContainer';
+import type { ScoreContainerRef } from './ScoreContainer';
 import Chatbot from './Chatbot';
 import DocumentHistory from '../../components/document/DocumentHistory';
 
@@ -61,8 +62,9 @@ const HomeBody: React.FC<HomeBodyProps> = ({
   }, []);
 
   return (
-    <div className="flex w-screen h-screen overflow-x-hidden">
-      <div className="absolute ml-[80px] mt-[15px] text-[45px] text-gray-500 dark:text-gray-400 font-bold flex items-center space-x-4">
+    <div className="flex flex-col sm:flex-row w-screen h-screen overflow-hidden gap-x-[4%] px-[4%]">
+
+      <div className="absolute ml-[10px] mt-[20px] text-[28px] sm:text-[28px] md:text-[32px] lg:text-[36px] text-gray-600 dark:text-gray-400 font-bold flex items-center space-x-10">
         <span>{title}</span>
         <button
           onClick={() => setShowHistory(!showHistory)}
@@ -71,10 +73,15 @@ const HomeBody: React.FC<HomeBodyProps> = ({
           {showHistory ? 'Hide History' : 'Show History'}
         </button>
       </div>
-      <div className="w-[32%] p-4 min-w-250">
+
+      <div className="w-full sm:w-[30%] min-w-[250px] mt-[90px] sm:mt-[70px] md:mt-[90px] overflow-y-auto max-h-screen pb-[5vh]">
+
         <Chatbot />
       </div>
-      <div className="flex-1 py-4 w-[28%]">
+      
+      <div className="w-full sm:w-[45%] pt-4 pb-[2vh] px-4 sm:px-6">
+
+
         <Content 
           onUpdateText={handleUpdateText} 
           text={text} 
@@ -82,7 +89,9 @@ const HomeBody: React.FC<HomeBodyProps> = ({
           onSave={handleSave}
         />
       </div>
-      <div className="w-[30%] pt-35 pb-42 pr-33 min-w-250">
+
+      <div className="w-full sm:w-[30%] flex flex-col justify-start pt-[60px] pb-8 pr-4 sm:pr-8 pl-4 sm:pl-4 lg:pl-3 min-w-[250px] overflow-visible" style={{ height: "fit-content" }}>
+        
         {showHistory && documentId ? (
           <DocumentHistory
             documentId={documentId}

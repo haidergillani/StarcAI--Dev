@@ -6,7 +6,7 @@ import { useRouter } from 'next/router';
 // Score icons
 import score_optimism from '../../assets/score_optimism.svg';
 import score_confidence from '../../assets/score_confidence.svg';
-import score_strategicforecast from '../../assets/score_strategicforecast.svg';
+import score_trustworthy from '../../assets/score_trustworthy.svg';
 
 export interface ScoreContainerRef {
   fetchScores: () => void;
@@ -51,9 +51,9 @@ interface TooltipContent {
 }
 
 const tooltipContent: TooltipContent = {
-  "Strategic Forecast": "Indicates the potential future outcomes and strategic implications of the content",
-  "Optimism": "Measures the positive outlook and constructive tone of the content",
-  "Confidence": "Reflects the certainty and reliability of the statements made"
+  "Strategic Forecast": "Indicates how likely investors are to trust the forward looking statements",
+  "Optimism": "Measures the positive outlook and optimistic tone of the content",
+  "Confidence": "Reflects the confidence investors will likely have in the company's future"
 };
 
 const ScoreContainer = forwardRef<ScoreContainerRef, ScoreContainerProps>((props, ref) => {
@@ -67,9 +67,9 @@ const ScoreContainer = forwardRef<ScoreContainerRef, ScoreContainerProps>((props
   useEffect(() => {
     if (props.initialScores) {
       setScores({
-        "Strategic Forecast": props.initialScores.forecast,
         "Optimism": props.initialScores.optimism,
-        "Confidence": props.initialScores.confidence
+        "Confidence": props.initialScores.confidence,
+        "Strategic Forecast": props.initialScores.forecast
       });
       setOverallScore(props.initialScores.score);
       setIsLoading(false);
@@ -95,9 +95,9 @@ const ScoreContainer = forwardRef<ScoreContainerRef, ScoreContainerProps>((props
         if (response.data?.[0]) {
           const scoreData = response.data[0];
           setScores({
-            "Strategic Forecast": scoreData.forecast,
             "Optimism": scoreData.optimism,
-            "Confidence": scoreData.confidence
+            "Confidence": scoreData.confidence,
+            "Strategic Forecast": scoreData.forecast
           });
           setOverallScore(scoreData.score);
         }
@@ -125,9 +125,9 @@ const ScoreContainer = forwardRef<ScoreContainerRef, ScoreContainerProps>((props
       setOverallScore(scores[0] ?? 0);
     } else {
       setScores({
-        "Strategic Forecast": scores.forecast ?? 0,
         "Optimism": scores.optimism ?? 0,
-        "Confidence": scores.confidence ?? 0
+        "Confidence": scores.confidence ?? 0,
+        "Strategic Forecast": scores.forecast ?? 0
       });
       setOverallScore(scores.score ?? 0);
     }
@@ -141,12 +141,18 @@ const ScoreContainer = forwardRef<ScoreContainerRef, ScoreContainerProps>((props
       case 'Confidence':
         return score_confidence as StaticImageData;
       case 'Strategic Forecast':
-        return score_strategicforecast as StaticImageData;
+        return score_trustworthy as StaticImageData;
       default:
         throw new Error(`Unknown score key: ${String(key)}`);
     }
   };
 
+  const displayLabels: Record<string, string> = {
+    "Optimism": "Optimistic",
+    "Confidence": "Confident",
+    "Strategic Forecast": "Trustworthy"
+  };
+  
   useImperativeHandle(ref, () => ({
     fetchScores,
     updateScores,
@@ -155,19 +161,31 @@ const ScoreContainer = forwardRef<ScoreContainerRef, ScoreContainerProps>((props
 
   return (
     <div className="flex flex-col items-center p-4 relative" onClick={showPopup ? closePopup : undefined}>
-      <div className="overall-score-container flex items-center justify-between mb-10 w-full">
-        <span className="text-gray-700 dark:text-gray-200 text-[70px] font-bold">{overallScore}%</span>
-        <h2 className="text-2xl mt-[20px] mr-[180px] text-gray-800 dark:text-gray-200">Overall Score</h2>
+      <div className="overall-score-container w-full mb-6">
+        <div className="flex items-center space-x-3">
+          <p className="text-[38px] font-bold text-gray-700 dark:text-white">{Math.floor(overallScore)}%</p>
+          <p className="text-[24px] font-medium text-gray-600 dark:text-gray-300">Overall Score</p>
+        </div>
       </div>
-      {Object.entries(scores).map(([key, value]) => (
-        <div key={key} className="w-full mb-4">
+      {Object.entries(scores)
+        .sort(([a], [b]) => {
+          const order = ["Optimism", "Confidence", "Strategic Forecast"];
+          return order.indexOf(a) - order.indexOf(b);
+        })
+        .map(([key, value], index) => (
+
+        <div
+          key={key}
+          className={`w-full mb-4 ${index === 0 ? 'mt-2' : ''}`}
+        >
+
           <div className="flex items-center">
             {isLoading ? (
               <div className="mr-4 mt-4 w-[38px] h-[38px]">
                 <div 
                   className="animate-spin rounded-full w-[38px] h-[38px] border-4" 
                   style={{ 
-                    borderColor: `${key === 'Optimism' ? '#454F63' : key === 'Confidence' ? '#71063D' : '#117F6A'} transparent transparent transparent`
+                    borderColor: `${key === 'Optimism' ? '#117F6A' : key === 'Confidence' ? '#454F63' : '#71063D'} transparent transparent transparent`
                   }}
                 />
               </div>
@@ -186,18 +204,25 @@ const ScoreContainer = forwardRef<ScoreContainerRef, ScoreContainerProps>((props
               </div>
             )}
             <div className="flex flex-col w-full">
-              <div className="flex justify-between">
-                <div className="flex mb-2">
-                  <span className="text-[20px] font-bold text-gray-800 dark:text-gray-200 mr-4">{value}%</span>
-                  <span className="text-base text-gray-800 dark:text-gray-200 mt-2">{key}</span>
-                </div>
+              <div className="flex items-center space-x-2 mt-4">
+                <span className="text-[20px] font-medium text-gray-800 dark:text-gray-200">{Math.floor(value)}%</span>
+                <span className="text-[17px] text-gray-600 dark:text-gray-400">
+                  {displayLabels[key] ?? key}
+                </span>
               </div>
               <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 mt-1">
                 <div 
                   className="h-2.5 rounded-full" 
                   style={{ 
                     width: `${value}%`, 
-                    backgroundColor: value > 0 ? `#${key === 'Optimism' ? '454F63' : key === 'Confidence' ? '71063D' : '117F6A'}` : 'transparent' 
+                    backgroundColor: value > 0
+                    ? key === 'Optimism'
+                      ? '#117F6A'
+                      : key === 'Confidence'
+                      ? '#454F63'
+                      : '#71063D' // Strategic Forecast
+                    : 'transparent'
+                  
                   }}
                 />
               </div>

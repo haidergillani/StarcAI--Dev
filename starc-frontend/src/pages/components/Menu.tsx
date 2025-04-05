@@ -290,7 +290,8 @@ const Menu: React.FC<MenuProps> = ({ defaultOpen = false }) => {
             </button>
             <button
               onClick={() => setIsUploadModalOpen(true)}
-              className={`flex items-center space-x-2 rounded-md bg-gray-200 dark:bg-gray-700 px-4 py-2 text-gray-800 dark:text-gray-200 transition-colors duration-200 hover:bg-gray-300 dark:hover:bg-gray-600 ${styles.menuItem}`}
+              className={`flex items-center space-x-2 rounded-md px-4 py-2 text-gray-800 dark:text-gray-200 transition-colors duration-200 hover:bg-gray-200 dark:hover:bg-gray-700 ${styles.menuItem}`}
+
             >
               <Image src={UploadIcon as StaticImageData} alt="Upload" width={24} height={24} />
               <span>Upload</span>

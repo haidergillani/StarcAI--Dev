@@ -23,10 +23,11 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearchComplete }) => {
       onSearchComplete(value);
     }, 500)
   );
-
+  
   useEffect(() => {
+    const debounceInstance = debouncedSearchRef.current;
     return () => {
-      debouncedSearchRef.current.cancel();
+      debounceInstance.cancel();
     };
   }, []);
 
@@ -56,8 +57,8 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearchComplete }) => {
       </div>
       <button
         onClick={() => debouncedSearchRef.current(query)}
-        className="rounded bg-primary-purple pb-12 pl-24 pr-24 pt-12 text-sm_3 font-semibold text-white"
-      >
+        className="rounded bg-primary-purple hover:bg-primary-purple-hover pb-12 pl-24 pr-24 pt-12 text-sm_3 font-semibold text-white transition-colors duration-300 ease-in-out"
+        >
         Search
       </button>
     </div>
