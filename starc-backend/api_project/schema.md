@@ -3,6 +3,10 @@
 ## User Model
 Represents the registered users of the system.
 
+### Indexes:
+- **idx_user_email**: Index on email field for faster authentication lookups
+- **idx_user_username**: Index on username field for faster authentication lookups
+
 ### Attributes:
 - **id**: Integer
   - Description: A unique identifier for each user. Primary key of the table.
@@ -35,6 +39,12 @@ Represents the registered users of the system.
 ## Document Model
 Represents documents created or uploaded by users.
 
+### Indexes:
+- **idx_user_docs**: Composite index on (user_id, id) for faster user document lookups
+- **idx_doc_title**: Index on title field for title searches
+- **idx_word_count**: Index on word_count for sorting/filtering
+- **idx_upload_date**: Index on upload_date for date-based queries
+
 ### Attributes:
 - **id**: Integer
   - Description: A unique identifier for each document. Primary key of the table.
@@ -54,6 +64,9 @@ Represents documents created or uploaded by users.
 - **text_chunks**: `relationship('TextChunks')`
   - Type: List of TextChunks
   - Description: List of text chunks associated with the document. Lazy-loaded relationship with cascade delete.
+- **history**: `relationship('DocumentHistory')`
+  - Type: List of DocumentHistory
+  - Description: List of document history entries. Lazy-loaded relationship with cascade delete.
 - **suggestions**: `relationship('Suggestion')`
   - Type: List of Suggestion
   - Description: List of suggestions associated with the document.
@@ -62,6 +75,10 @@ Represents documents created or uploaded by users.
 
 ## TextChunks Model
 Represents chunks of text from a document that can be processed and rewritten.
+
+### Indexes:
+- **idx_doc_chunks**: Index on document_id for faster document lookups
+- **idx_input_text**: Index on input_text_chunk for text search capabilities
 
 ### Attributes:
 - **id**: Integer
@@ -86,8 +103,32 @@ Represents chunks of text from a document that can be processed and rewritten.
 
 ---
 
+## DocumentHistory Model
+Tracks the history of changes made to documents.
+
+### Indexes:
+- **idx_doc_history**: Composite index on (document_id, created_at) for efficient history lookups
+
+### Attributes:
+- **id**: Integer
+  - Description: A unique identifier for each history entry. Primary key of the table.
+- **document_id**: Integer
+  - Description: Foreign key linking to the Document model.
+  - Constraints: Not nullable.
+- **content**: Text
+  - Description: The document content at this point in history.
+  - Constraints: Not nullable.
+- **created_at**: DateTime
+  - Description: The timestamp when this history entry was created.
+  - Constraints: Defaults to current UTC time.
+
+---
+
 ## InitialScore Model
 Captures the initial scoring metrics for a text chunk.
+
+### Indexes:
+- **idx_initial_scores**: Composite index on (text_chunk_id, score) for score lookups
 
 ### Attributes:
 - **id**: Integer
@@ -113,6 +154,9 @@ Captures the initial scoring metrics for a text chunk.
 ## FinalScore Model
 Captures the final scoring metrics for a text chunk.
 
+### Indexes:
+- **idx_final_scores**: Composite index on (text_chunk_id, score) for score lookups
+
 ### Attributes:
 - **id**: Integer
   - Description: A unique identifier for each final score. Primary key of the table.
@@ -136,6 +180,9 @@ Captures the final scoring metrics for a text chunk.
 
 ## Suggestion Model
 Represents suggested improvements for document text chunks.
+
+### Indexes:
+- **idx_doc_suggestions**: Index on document_id for faster document suggestion lookups
 
 ### Attributes:
 - **id**: Integer
