@@ -123,7 +123,7 @@ export default function LoginForm() {
               type="submit"
               disabled={!isFormValid()}
               onClick={handleSubmit}
-              className="w-380 rounded border bg-indigo-800 p-16 text-sm_3 font-bold text-white hover:bg-indigo-700 disabled:opacity-50"
+              className="w-380 rounded border bg-primary-purple p-16 text-sm_3 font-bold text-white hover:bg-primary-purple-hover"
             >
               CONTINUE
             </button>
