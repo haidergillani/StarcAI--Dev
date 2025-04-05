@@ -91,7 +91,7 @@ const SuggestionsContainer = forwardRef<HTMLDivElement, SuggestionsContainerProp
       <div className="max-w-md mx-auto mt-5">
         {/* Header shown once */}
         <div className="flex items-center mb-5">
-          <span className="bg-rose-950 rounded-full w-3 h-3 inline-block mr-2"></span>
+          <span className="bg-emerald-700 rounded-full w-3 h-3 inline-block mr-2"></span>
           <p className="text-lg font-semibold text-gray-700 dark:text-gray-200">
             Guide StarcAI to match your style
           </p>
@@ -117,7 +117,7 @@ const SuggestionsContainer = forwardRef<HTMLDivElement, SuggestionsContainerProp
             <div className="flex justify-center mt-4">
               <button
                 onClick={() => handleRewrite(prompt.id, prompt.prompt)}
-                className="bg-primary-purple mb-4 text-white py-1 px-[16px] rounded-md font-[550] tracking-wide hover:bg-primary-purple-hover transition duration-300 ease-in-out"
+                className="bg-primary-purple mb-4 text-white py-1 px-[16px] rounded-md font-[550] tracking-wide hover:bg-primary-purple-hover transition-colors duration-300 ease-in-out"
               >
                 Rewrite
               </button>

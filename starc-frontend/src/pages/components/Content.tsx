@@ -113,14 +113,14 @@ const Content = ({ onSave, onUpdateText, text, setText }: ContentProps) => {
         {/* Fine Print (Center) */}
         <p className="text-xs text-gray-500 dark:text-gray-400 text-center flex-1">
           StarcAI can make mistakes. Check important info.
-          <br/>No legal liability is assumed by StarcAI.          
+          <br/>No legal liability is assumed for any errors or omissions.          
         </p>
 
         {/* Save Button (Right) */}
         <div className="flex items-center space-x-4 ml-auto">
           <button
             onClick={handleSave}
-            className="rounded-md bg-primary-purple hover:bg-primary-purple-hover font-[550]] tracking-wide px-4 py-2 text-white transition duration-300 ease-in-out"
+            className="rounded-md bg-primary-purple hover:bg-primary-purple-hover font-[550]] tracking-wide px-4 py-2 text-white transition-colors duration-300 ease-in-out"
           >
             Save
           </button>

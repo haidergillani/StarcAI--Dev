@@ -114,7 +114,7 @@ const Chatbot = () => {
           </div>
           <div className="flex justify-center mt-3">
             <button
-              className="bg-primary-purple text-white py-2 px-4 rounded-md font-semibold tracking-wide hover:bg-primary-purple-hover transition duration-300 ease-in-out"
+              className="bg-primary-purple text-white py-2 px-4 rounded-md font-semibold tracking-wide hover:bg-primary-purple-hover transition-colors duration-300 ease-in-out"
               onClick={handleSend}
             >
               Enter
