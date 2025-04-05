@@ -3,10 +3,10 @@ from fastapi_jwt_auth import AuthJWT
 from sqlalchemy.orm import Session
 from api_project.models import Document, TextChunks, Suggestion, FinalScore, InitialScore
 from api_project.database import get_db
-from api_project.schemas import TextChunkUpdate, TextChunkResponse, SuggestionCreate, SuggestionResponse
-from api_project.schemas import ChatRequest, ChatMessage, ChatResponse, RewriteRequest # Import the Pydantic models
-from typing import List, Tuple
-from api_project.processing import generate_sentence_suggestions, chat_bot, rewrite_text_with_prompt, get_scoresSA # Import the functions
+from api_project.schemas import SuggestionResponse
+from api_project.schemas import ChatRequest, ChatMessage, ChatResponse, RewriteRequest
+from typing import List
+from api_project.processing import chat_bot, rewrite_text_with_prompt, get_scoresSA
 
 rewrite_router = APIRouter()
 

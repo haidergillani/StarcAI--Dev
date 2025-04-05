@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
 import type { AxiosError } from "axios";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { GoogleLogin } from "@react-oauth/google";
 import type { CredentialResponse } from "@react-oauth/google";
+import { api, storeTokens } from "../../utils/auth";
 
 interface ErrorResponse {
   message: string;
@@ -102,8 +102,8 @@ export default function RegisterForm() {
     });
     if (isFormValid()) {
       try {
-        const response = await axios.post(
-          `${API_URL}/auth/register`,
+        const response = await api.post(
+          `/auth/register`,
           {
             username,
             email,
@@ -131,13 +131,13 @@ export default function RegisterForm() {
         throw new Error('No credential received');
       }
       
-      const res = await axios.post<AuthResponse>(`${API_URL}/auth/google`, {
+      const res = await api.post<AuthResponse>(`/auth/google`, {
         credential: response.credential,
       });
 
       const accessToken = res.data.access_token;
       if (accessToken) {
-        localStorage.setItem("authToken", accessToken);
+        storeTokens({ access_token: accessToken });
         void router.push("/docs");
       } else {
         console.error("No access token received");
