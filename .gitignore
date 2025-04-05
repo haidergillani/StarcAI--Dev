@@ -46,3 +46,5 @@ $Recycle.Bin/
 $Recycle.Bin/
 venv/
 .pytest_cache/
+oldenv.txt
+starc-backend/oldenv.txt

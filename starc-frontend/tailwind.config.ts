@@ -52,7 +52,8 @@ export default {
         '380': '380px',
       },
       colors: { 
-        'primary-purple': '#5D5FEF',
+        'primary-purple': '#5C5DBB',
+        'primary-purple-hover': '#3A3DE1',
         'primary-blue': '#0043CE',
         'secondary-light-blue': '#D0E2FF',
         'primary-pink': '#EF5DA8',

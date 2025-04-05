@@ -2,7 +2,7 @@
 
 ## Introduction
 
-StarcAI is an innovative tool designed to refine and enhance your pitch presentations. At the heart of StarcAI's mission is to empower users with AI-driven insights, fostering optimism, confidence, and strategic forecast in their communications.
+StarcAI is an innovative tool designed to refine and enhance your pitch presentations. At the heart of StarcAI's mission is to empower users with AI-driven insights, fostering optimism, confidence, and trustworthyness in their communications.
 
 Demo Video: https://drive.google.com/drive/folders/1WGC7Gsh1Dw5i2Rpq6RaEgFo9in980Kmd?usp=sharing
 
