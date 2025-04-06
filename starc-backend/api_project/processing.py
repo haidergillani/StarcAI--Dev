@@ -11,12 +11,8 @@ from datetime import datetime
 
 load_dotenv()
 
-model_name = os.getenv('StarcAI_Rewrite_Model')
+model_name = os.getenv('StarcAI_Rewrite_Model', 'gpt-4.5-preview')
 client = OpenAI(api_key= os.getenv('StarcAI_API_KEY'))
-
-if model_name is None:
-    raise ValueError("Rewriting model is not set in the environment variables.")
-
 
 # Google API Key for function calls
 gc_virtual_api_key = os.environ.get("GOOGLE_CLOUD_API_KEY")
