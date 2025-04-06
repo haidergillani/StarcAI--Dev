@@ -94,7 +94,7 @@ export default function DocsContainer() {
 
     try {
       const response = await axios.get<SearchResponse>(`${API_URL}/api/search`, {
-        params: {page, limit },
+        params: { q: query, page, limit },
         headers: { Authorization: `Bearer ${authToken}` },
       });
       handleSearchComplete(response);
