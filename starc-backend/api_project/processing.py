@@ -2,7 +2,6 @@ import requests
 import json
 import os
 import aiohttp
-import openai
 from openai import OpenAI
 from dotenv import load_dotenv
 import time
@@ -12,6 +11,7 @@ from datetime import datetime
 
 load_dotenv()
 
+model_name = os.getenv('StarcAI_Rewrite_Model', 'gpt-4.5-preview')
 client = OpenAI(api_key= os.getenv('StarcAI_API_KEY'))
 
 # Google API Key for function calls
@@ -109,27 +109,29 @@ SYSTEM_PROMPT = (
     "You are a financial analyst and investor relations expert, "
     "specialized in writing MD&A sections for public 10-K filings, 10-Q reports, and letters to stakeholders. "
     "Your task is to rewrite given MD&A sentences in a clear, professional business style that reflects the user's requested tone. "
-    "Ensure that the language is precise, and that the sentence structure is consistent with investor relations industry standards. "
+    "Ensure that the language is concise as needed, precise, and that the sentence structure is consistent with investor relations industry standards. "
     "Refrain strongly from adding any new information from your side."
-    "Importantly, do not make it so overly optimistic that it becomes suspicious or hard to believe. Be grounded and realistic."
-    "Keep the overall context and number of sentences the same. Do not change any factual information or numbers if provided."
+    "Importantly, do not make the wording so overly optimistic or unrealistic that it becomes suspicious or hard to believe. Be grounded and realistic."
+    "Keep the overall context, paragraph formatting, and the number of sentences the same. Do not change any factual information or numbers if provided."
     "Do not repeat back the user prompt or mention explicitly wording that makes you appear an AI bot like 'as an AI agent' or 'is there anything else I can assist you with' etc."
 )
+
 def rewrite_text_with_prompt(original_text: str, prompt: str):
     '''
     Rewrite the given text based on the provided prompt.
     '''
-
-    response = openai.ChatCompletion.create(
-        #model="gpt-3.5-turbo",
-        model="gpt-4o",
+    
+    response = client.chat.completions.create(
+        # model="gpt-4o",
         
-        max_tokens=500,
-        temperature=0.5,
+        # allows for using custom GPT model that we finetuned on investor relations data from S&P 500 companies
+        model=model_name,
         messages=[
             {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": f"Rewrite the following text to {prompt}: {original_text}"}
-        ]
+            {"role": "user", "content": f"Please rewrite the following text to {prompt}: {original_text}"}
+        ],        
+        max_tokens=500,
+        temperature=0.5,
     )
     
     rewritten_text = response.choices[0].message.content.strip()
